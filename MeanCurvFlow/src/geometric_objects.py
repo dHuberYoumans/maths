@@ -40,7 +40,7 @@ class Icosphere():
         # CONVERT TO LIST
         vertices_ = list(vertices_)
 
-        edges_, faces_ = geom.EF(vertices_)
+        edges_, faces_ = geom.edges_and_faces(vertices_)
 
         self.surf = (vertices_, edges_, faces_)
 
@@ -52,7 +52,7 @@ class Icosphere():
         self.surf = geom.subdivide_triangular_mesh(self.surf)
 
     def plot_surface(self):
-            vertices_ = self.get_vertices()
+            vertices_ = self.get_vertices(as_array=True)
 
             fig = plt.figure(figsize=(10,6))
             ax = fig.add_subplot(projection='3d')
@@ -93,7 +93,6 @@ class Icosphere():
 
         return neighbours
 
-
     def get_normal(self,v):
         # neighbours = self.get_neighbours(v)
         vertices_ = self.get_vertices(as_array=True)
@@ -109,13 +108,12 @@ class Icosphere():
     
     def plot_normals(self,scale:float=1.):
 
-        vertices_ = self.get_vertices()
-        vertices_as_arr_ = np.array(vertices_)
+        vertices_ = self.get_vertices(as_array=True)
 
         fig = plt.figure(figsize=(10,6))
         ax = fig.add_subplot(projection='3d')
 
-        ax.scatter(vertices_as_arr_[:,0], vertices_as_arr_[:, 1], vertices_as_arr_[:, 2], color='blue')
+        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color='blue')
 
         for v in vertices_:
             # PLOT NORMAL AS ARROW 
@@ -136,7 +134,7 @@ class Icosphere():
 
 class Cylinder():
      
-     def __init__(self,n_points:int=10,R:float=1.0):
+    def __init__(self,n_points:int=10,R:float=1.0):
 
         # UNIFORM RECTANGULAR GRID OF [0,2PI] X [0,1] 
         steps_ = n_points
@@ -150,6 +148,34 @@ class Cylinder():
         # MAP TO CYLINDER
         X_, Y_,Z_ = R*np.cos(phi_), R*np.sin(phi_), R*z_  
 
-        vertices_ = np.array([X_.ravel(),Y_.ravel(),Z_.ravel()]).T
+        vertices_ = list(np.array([X_.ravel(),Y_.ravel(),Z_.ravel()]).T)
+
+        self.surf = (vertices_,None,None) # COMPUTE EDGES AND FACES
+
+    def get_vertices(self,as_array:bool = False):
+        if as_array:
+            return np.array(self.surf[0])
+        else:
+            return self.surf[0]
+    
+    def get_edges(self):
+        return self.surf[1]
+    
+    def get_faces(self):
+        return self.surf[2]
+
+    def plot_surface(self):
+        vertices_ = self.get_vertices(as_array=True)
+
+        fig = plt.figure(figsize=(10,6))
+        ax = fig.add_subplot(projection='3d')
+
+        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color='blue')
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+    
+        plt.show()
         
      
