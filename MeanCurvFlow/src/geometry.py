@@ -90,7 +90,7 @@ def subdivide_triangular_mesh(surf):
 
     return vertices_, edges_, faces_
 
-def EF(vertices,n_nbrs:int = 6):
+def edges_and_faces(vertices,n_nbrs:int = 6):
     """
     vertices = list of np.arrays = pts
     """
