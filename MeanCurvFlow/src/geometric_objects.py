@@ -12,7 +12,14 @@ from sklearn.neighbors import NearestNeighbors
 
 import geometry as geom
 
+import numpy.typing as npt
+from typing import List,Tuple
 
+
+Vector = npt.NDArray[np.float64]
+Vertices = List[Vector]
+Edge = Tuple[int,int]
+Face = Tuple[int,int,int]
 
 
 
@@ -45,25 +52,91 @@ class Icosphere():
         self.surf = (vertices_, edges_, faces_)
 
         if n_subdivision:
-            for n in range(n_subdivision):
-                self.subdivision()
+            self.subdivision(n_subdivision)
+            # for n in range(n_subdivision):
+            #     self.subdivision()
 
-    def subdivision(self):
-        self.surf = geom.subdivide_triangular_mesh(self.surf)
+    def get_subdivision_pts(self,vertices:Vertices,face:Face,n:int=1):
+        idx0, idx1, idx2 = face
+        v0, v1, v2 = vertices[idx0], vertices[idx1], vertices[idx2]
+        is_old = False
 
-    def plot_surface(self):
-            vertices_ = self.get_vertices(as_array=True)
+        vertices_idx = []
 
-            fig = plt.figure(figsize=(10,6))
-            ax = fig.add_subplot(projection='3d')
+        # FIND VERTICES
+        for i in range(0,n+1):
+            # GET POINT ON EDGE v0-v1 AND DEFINE LINE TO CORRESPONDING POINT ON EDGE v0-v2
+            p1 = v0 + (i / n) * (v1 - v0) 
+            p2 = v0 + (i / n) * (v2 - v0) 
 
-            ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color='blue')
+            # ith LINE HAS TWO POINTS ON THE OUTER EDGES AND i POINTS ON THE LINE CONNECTING THOSE POINTS
+            for j in range(i+1):
+                if i > 0:
+                    p = p1 + (j/i)*(p2-p1)
+                else:
+                    p = p1
+                
+                # CHECK IF ALREADY IN VERTICES
+                for idx, v in enumerate(vertices):
+                    if np.allclose(p, v, atol=1e-8): # CHECKS (UP TO TOLERANCE IF TWO ELEMENTS ARE THE SAME)
+                        vertices_idx.append(idx) # IF p ALREADY IN vertices, RETURN ITS INDEX
+                        is_old = True
+                    
+                if not is_old:
+                    # IF p IS NOT IN vertices, NORMALISE (TO LIE ON SPHERE), ADD IT (UNIT NORM) AND RETURN ITS INDEX
+                    vertices.append(p/np.linalg.norm(p)) 
+                    vertices_idx.append(len(vertices)-1)
+                
+                is_old = False
 
-            ax.set_xlabel('x')
-            ax.set_ylabel('y')
-            ax.set_zlabel('z')
+        return vertices_idx
+       
+    def get_subdivision_edges_and_faces(self,vertices_idx:list[int]):
+        lines = []
+        vertices_ = vertices_idx.copy()
+        edges_ = set()
+        faces_ = set()
+        n = int(1/2 * (-1 + np.sqrt(8 *len(vertices_) + 1)) - 1)  # INVERSE TRIANGULAR NUMBER, ZERO-BASED
+        for k in range(1,n+2):
+            lines.append(vertices_[:k])
+            del vertices_[:k]
+
+        for k in range(len(lines)-1):
+            for i in range(k+1):
+                e1 = tuple(sorted([lines[k][i],lines[k+1][i]]))
+                e2 = tuple(sorted([lines[k][i],lines[k+1][i+1]]))
+                e3 = tuple(sorted([lines[k+1][i],lines[k+1][i+1]]))
+
+                f = {tuple(sorted([lines[k][i],lines[k+1][i],lines[k+1][i+1]]))}
+                if (k > 0) & (i < k):
+                    f.update({tuple(sorted([lines[k][i],lines[k][i+1],lines[k+1][i+1]]))})
+                
+
+                edges_.update({e1,e2,e3})
+                faces_.update(f)
+                
+        return edges_, faces_
+
+    def subdivision(self,n:int):
+        vertices_ = self.surf[0]
+        _ = self.surf[1]
+        faces = self.surf[2]
+
+        faces_ = set()
+        edges_ = set()
+
+        for face in faces:
+            v0, v1, v2 = vertices_[face[0]], vertices_[face[1]], vertices_[face[2]]
+
+            vertices_idx_ = self.get_subdivision_pts(vertices_,face,n)
+            new_edges_, new_faces_ = self.get_subdivision_edges_and_faces(vertices_idx_)
+            edges_.update(new_edges_)
+            faces_.update(new_faces_)
+
+        self.surf = (vertices_, edges_, faces_)
+
         
-            plt.show()
+        # self.surf = geom.subdivide_triangular_mesh(self.surf)
 
     def get_vertices(self,as_array:bool = False):
         if as_array:
@@ -106,14 +179,31 @@ class Icosphere():
 
         return normal_
     
-    def plot_normals(self,scale:float=1.):
+    def plot_surface(self,figsize=(10,6),v_color='blue',title=None):
+            vertices_ = self.get_vertices(as_array=True)
+
+            fig = plt.figure(figsize=figsize)
+            ax = fig.add_subplot(projection='3d')
+
+            ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('z')
+
+            if title:
+                plt.title(title)
+        
+            plt.show()
+
+    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None):
 
         vertices_ = self.get_vertices(as_array=True)
 
-        fig = plt.figure(figsize=(10,6))
+        fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(projection='3d')
 
-        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color='blue')
+        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
 
         for v in vertices_:
             # PLOT NORMAL AS ARROW 
@@ -121,7 +211,7 @@ class Icosphere():
             ax.quiver(
                 v[0], v[1], v[2], # START POINT OF VECTOR
                 normal_[0] , normal_[1], normal_[2], # DIRECTION
-                color = 'black', alpha = 0.8, lw = 1,
+                color = arr_color, alpha = 0.8, lw = 1,
             )
 
 
@@ -129,8 +219,35 @@ class Icosphere():
         ax.set_ylabel('y')
         ax.set_zlabel('z')
 
+        if title:
+            plt.title(title)
+
         plt.show()
 
+    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None):
+        vertices_ = self.get_vertices(as_array=True)
+        edges_ = self.get_edges()
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(projection='3d')
+
+        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+        for edge in edges_:
+            v0 = vertices_[edge[0]]
+            v1 = vertices_[edge[1]]
+            v = np.array([v0,v1])
+
+            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color)
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        if title:
+            plt.title(title)
+    
+        plt.show()
 
 class Cylinder():
      
@@ -164,17 +281,20 @@ class Cylinder():
     def get_faces(self):
         return self.surf[2]
 
-    def plot_surface(self):
+    def plot_surface(self,figsize=(10,6),v_color='blue',title=None):
         vertices_ = self.get_vertices(as_array=True)
 
-        fig = plt.figure(figsize=(10,6))
+        fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(projection='3d')
 
-        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color='blue')
+        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
 
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
+
+        if title:
+            plt.title(title)
     
         plt.show()
         
