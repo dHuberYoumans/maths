@@ -1,8 +1,52 @@
 import numpy as np
+import numpy.typing as npt
+from typing import List,Tuple
 
 from sklearn.neighbors import NearestNeighbors
 from sklearn.decomposition import PCA
 import itertools
+
+
+Vector = npt.NDArray[np.float64]
+Vertices = List[Vector]
+Edge = Tuple[int,int]
+Face = Tuple[int,int,int]
+
+def get_interior_pts_idx(vertices:Vertices,face:Face,n:int=2):
+    idx0, idx1, idx2 = face
+    v0, v1,v2 = vertices[idx0], vertices[idx1], vertices[idx2]
+
+    vertices_idx = []
+
+    # FIND VERTICES
+    for i in range(1, n):
+        # GET POINT ON EDGE v0-v1 AND DEFINE LINE TO CORRESPONDING POINT ON EDGE v0-v2
+        p1 = v0 + (i / n) * (v1 - v0) 
+        p2 = v0 + (i / n) * (v2 - v0) 
+
+        # ith LINE HAS TWO POINTS ON THE OUTER EDGES AND i POINTS ON THE LINE CONNECTING THOSE POINTS
+        for j in range(i+1):
+            if i > 0:
+                p = p1 + (j/i)*(p2-p1)
+            else:
+                p = p1
+            
+            # CHECK IF ALREADY IN VERTICES
+            for idx, v in enumerate(vertices):
+                if np.allclose(p, v, atol=1e-8): # CHECKS (UP TO TOLERANCE IF TWO ELEMENTS ARE THE SAME)
+                    vertices_idx.append(idx) # IF p ALREADY IN vertices, RETURN ITS INDEX
+                
+            # IF p IS NOT IN vertices, NORMALISE (TO LIE ON SPHERE), ADD IT AND RETURN ITS INDEX
+            vertices.append(p/np.linalg.norm(p))
+            vertices_idx.append(len(vertices)-1)
+
+    return vertices_idx
+       
+def get_new_edges(new_vertices_idx:list[int]):
+    pass
+
+def get_new_faces():
+    pass
 
 
 
@@ -15,7 +59,7 @@ def get_midpoint_idx(v1,v2,vertices):
             return i  # IF m ALREADY IN vertices, RETURN ITS INDEX
         
     # IF m IS NOT IN vertices, ADD IT AND RETURN ITS INDEX
-    vertices.append(m)
+    vertices.append(m/np.linalg.norm(m))
 
     return len(vertices)-1 
 
@@ -141,3 +185,50 @@ def pca_analysis(p, neighbors,n_components:int = 3):
     # ESTIMATE MEAN CURVATURE
 
     return normal, e1, e2
+
+def fit_quadratic_surf(x,y,z): # FITS SURFACE z(x,y) = ax**2 + by**2 + c xy + dx + ey + f => b = A  where A = {x**2, y**2, xy, x, y, 1} = (1,5) matrix and v = {a,b,c,d,e,f} = (5,1) matrix 
+    A = np.c_[x**2,y**2,x*y,x,y,np.ones_like(x)] # STACKS COMPONENTS (x**2, y**2 etc.) AS VECTORS (VECTORISATION) HORIZONTALLY (APPOSED TO VSTACK) - EACH COLUMN REPRESENTS TERMS x**2, y**2, xy, etc
+    sol, _, _, _ = np.linalg.lstsq(A,z,rcond=None) # LEAST SQUARE FIT OF LINEAR EQN A v = b ; rcond = CUT OFF CONDITION
+
+    return sol
+
+def estimate_principal_curvatures(point,neighbors):
+
+    # COMPUTE NORMAL AND TANGENT FRAME
+    normal, e1, e2 = pca_analysis(point, neighbors)
+
+    # CENTER NBRS
+    nbrs = neighbors - point
+
+    # PROJECT NBRS TO TANGENT PLANE
+    x = nbrs @ e1
+    y = nbrs @ e2
+    z = nbrs @ (-normal) # PROJECTION TO NORMAL - USE -normal SINCE normal POINTS OUTWARD THEN z(x,y) APPROXIMATES SURFACE IN OPPOSITE DIRECTION
+
+    # FIT QUADARTIC SURFACE
+    a, b, c, _, _, _ = fit_quadratic_surf(x,y,z)
+
+    # COMPUTE PRINCIPAL CURVATURES
+    Hess = np.array([[2*a, c], [c, 2*b]])
+
+    kappa1, kappa2 = np.linalg.eigvals(Hess)
+
+    return kappa1, kappa2
+
+def mean_curv(cloud,k:int=15):
+    H_ = []
+
+    nbrs = NearestNeighbors(n_neighbors=k, algorithm='ball_tree').fit(cloud)
+    _, indices = nbrs.kneighbors(cloud)
+
+    for n in range(indices.shape[0]):
+        point = cloud[n] 
+        
+        neighbours = cloud[indices[n]]
+
+        kappa1, kappa2 = estimate_principal_curvatures(point, neighbours)
+
+        H_.append((point,(kappa1 + kappa2) / 2))
+
+    return H_
+     
