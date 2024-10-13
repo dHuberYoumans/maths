@@ -21,9 +21,116 @@ Vertices = List[Vector]
 Edge = Tuple[int,int]
 Face = Tuple[int,int,int]
 
+class GeometricObject3D():
+    def __init__(self) -> None:
+        self.surf = (None,None,None)
+
+    def get_vertices(self,as_array:bool = False) -> list[Vector] | np.ndarray[Vector]:
+        if as_array:
+            return np.array(self.surf[0])
+        else:
+            return self.surf[0]
+        
+    def get_edges(self) -> set[Edge]:
+        return self.surf[1]
+    
+    def get_faces(self) -> set[Face]:
+        return self.surf[2]
+    
+    def get_normal(self,v) -> Vector:
+        # neighbours = self.get_neighbours(v)
+        vertices_ = self.get_vertices(as_array=True)
+
+        nbrs = NearestNeighbors(n_neighbors=10, algorithm='ball_tree').fit(vertices_)
+        _, indices = nbrs.kneighbors([v])
+
+        neighbours = vertices_[indices.flatten()]
+
+        normal_, _, _ = geom.pca_analysis(v, neighbours)
+
+        return normal_
+    
+    def plot_surface(self,figsize=(10,6),v_color='blue',title=None) -> None:
+            vertices_ = self.get_vertices(as_array=True)
+
+            fig = plt.figure(figsize=figsize)
+            ax = fig.add_subplot(projection='3d')
+
+            ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('z')
+
+            if title:
+                plt.title(title)
+        
+            plt.show()
+
+    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None,mesh:bool = False, mesh_color:str = 'gray') -> None:
+
+        vertices_ = self.get_vertices(as_array=True)
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(projection='3d')
+
+        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+        if mesh:
+            edges_ = self.get_edges()
+            for edge in edges_:
+                v0 = vertices_[edge[0]]
+                v1 = vertices_[edge[1]]
+                v = np.array([v0,v1])
+
+                ax.plot(v[:,0],v[:,1],v[:,2],color=mesh_color)
+
+        for v in vertices_:
+            # PLOT NORMAL AS ARROW 
+            normal_ = scale*self.get_normal(v)
+            ax.quiver(
+                v[0], v[1], v[2], # START POINT OF VECTOR
+                normal_[0] , normal_[1], normal_[2], # DIRECTION
+                color = arr_color, alpha = 0.8, lw = 1,
+            )
 
 
-class Icosphere():
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        if title:
+            plt.title(title)
+
+        plt.show()
+
+    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None) -> None:
+        vertices_ = self.get_vertices(as_array=True)
+        edges_ = self.get_edges()
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(projection='3d')
+
+        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+        for edge in edges_:
+            v0 = vertices_[edge[0]]
+            v1 = vertices_[edge[1]]
+            v = np.array([v0,v1])
+
+            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color)
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        if title:
+            plt.title(title)
+    
+        plt.show()
+
+
+class Icosphere(GeometricObject3D):
     
     def __init__(self,n_subdivision:int = None) -> None:
 
@@ -134,18 +241,6 @@ class Icosphere():
             faces_.update(new_faces_)
 
         self.surf = (vertices_, edges_, faces_)
-
-    def get_vertices(self,as_array:bool = False) -> list[Vector] | np.ndarray[Vector]:
-        if as_array:
-            return np.array(self.surf[0])
-        else:
-            return self.surf[0]
-        
-    def get_edges(self) -> set[Edge]:
-        return self.surf[1]
-    
-    def get_faces(self) -> set[Face]:
-        return self.surf[2]
     
     def get_idx(self,v) -> int:
         vertices_ = self.get_vertices()
@@ -163,99 +258,8 @@ class Icosphere():
 
         return neighbours
 
-    def get_normal(self,v) -> Vector:
-        # neighbours = self.get_neighbours(v)
-        vertices_ = self.get_vertices(as_array=True)
 
-        nbrs = NearestNeighbors(n_neighbors=10, algorithm='ball_tree').fit(vertices_)
-        _, indices = nbrs.kneighbors([v])
-
-        neighbours = vertices_[indices.flatten()]
-
-        normal_, _, _ = geom.pca_analysis(v, neighbours)
-
-        return normal_
-    
-    def plot_surface(self,figsize=(10,6),v_color='blue',title=None) -> None:
-            vertices_ = self.get_vertices(as_array=True)
-
-            fig = plt.figure(figsize=figsize)
-            ax = fig.add_subplot(projection='3d')
-
-            ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
-
-            ax.set_xlabel('x')
-            ax.set_ylabel('y')
-            ax.set_zlabel('z')
-
-            if title:
-                plt.title(title)
-        
-            plt.show()
-
-    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None,mesh:bool = False, mesh_color:str = 'gray') -> None:
-
-        vertices_ = self.get_vertices(as_array=True)
-
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(projection='3d')
-
-        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
-
-        if mesh:
-            edges_ = self.get_edges()
-            for edge in edges_:
-                v0 = vertices_[edge[0]]
-                v1 = vertices_[edge[1]]
-                v = np.array([v0,v1])
-
-                ax.plot(v[:,0],v[:,1],v[:,2],color=mesh_color)
-
-        for v in vertices_:
-            # PLOT NORMAL AS ARROW 
-            normal_ = scale*self.get_normal(v)
-            ax.quiver(
-                v[0], v[1], v[2], # START POINT OF VECTOR
-                normal_[0] , normal_[1], normal_[2], # DIRECTION
-                color = arr_color, alpha = 0.8, lw = 1,
-            )
-
-
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-
-        if title:
-            plt.title(title)
-
-        plt.show()
-
-    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None) -> None:
-        vertices_ = self.get_vertices(as_array=True)
-        edges_ = self.get_edges()
-
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(projection='3d')
-
-        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
-
-        for edge in edges_:
-            v0 = vertices_[edge[0]]
-            v1 = vertices_[edge[1]]
-            v = np.array([v0,v1])
-
-            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color)
-
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-
-        if title:
-            plt.title(title)
-    
-        plt.show()
-
-class Cylinder():
+class Cylinder(GeometricObject3D):
      
     def __init__(self,steps:int = 10, R:float = 1.0):
 
@@ -304,116 +308,13 @@ class Cylinder():
             edges_.update({(i*rows+(rows-1),(i+1)*rows+rows-1)})
 
         self.surf = (vertices_,edges_,faces_) # COMPUTE EDGES AND FACES
-
-    def get_vertices(self,as_array:bool = False):
-        if as_array:
-            return np.array(self.surf[0])
-        else:
-            return self.surf[0]
         
     def get_planar_vertices(self,as_array:bool = False) ->list[Vector] | np.ndarray[Vector]:
         if as_array:
             return self.vertices_on_plane
         else:
             return list(self.vertices_on_plane) 
-    
-    def get_edges(self):
-        return self.surf[1]
-    
-    def get_faces(self):
-        return self.surf[2]
-
-    def get_normal(self,v):
-        vertices_ = self.get_vertices(as_array=True)
-
-        nbrs = NearestNeighbors(n_neighbors=10, algorithm='ball_tree').fit(vertices_)
-        _, indices = nbrs.kneighbors([v])
-
-        neighbours = vertices_[indices.flatten()]
-
-        normal_, _, _ = geom.pca_analysis(v, neighbours)
-
-        return normal_
-    
-    def plot_surface(self,figsize=(10,6),v_color='blue',title=None):
-        vertices_ = self.get_vertices(as_array=True)
-
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(projection='3d')
-
-        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
-
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-
-        if title:
-            plt.title(title)
-    
-        plt.show()
-        
-    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None):
-        vertices_ = self.get_vertices(as_array=True)
-        edges_ = self.get_edges()
-
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(projection='3d')
-
-        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
-
-        for edge in edges_:
-            v0 = vertices_[edge[0]]
-            v1 = vertices_[edge[1]]
-            v = np.array([v0,v1])
-
-            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color)
-
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-
-        if title:
-            plt.title(title)
-    
-        plt.show()
-
-    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None, mesh:bool = False,mesh_color:str = 'gray'):
-
-        vertices_ = self.get_vertices(as_array=True)
-
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(projection='3d')
-
-        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
-
-        if mesh:
-            edges_ = self.get_edges()
-            for edge in edges_:
-                v0 = vertices_[edge[0]]
-                v1 = vertices_[edge[1]]
-                v = np.array([v0,v1])
-
-                ax.plot(v[:,0],v[:,1],v[:,2],color=mesh_color)
-
-        for v in vertices_:
-            # PLOT NORMAL AS ARROW 
-            normal_ = scale*self.get_normal(v)
-            ax.quiver(
-                v[0], v[1], v[2], # START POINT OF VECTOR
-                normal_[0] , normal_[1], normal_[2], # DIRECTION
-                color = arr_color, alpha = 0.8, lw = 1,
-            )
-
-
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-
-        if title:
-            plt.title(title)
-
-        plt.show()
-
+  
     def plot_planar_mesh(self,figsize:tuple[int,int] = (10,4),title:str = None) -> None:
         vertices_ = self.get_planar_vertices()
         edges_ = self.get_edges()
