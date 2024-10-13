@@ -25,7 +25,7 @@ Face = Tuple[int,int,int]
 
 class Icosphere():
     
-    def __init__(self,n_subdivision:int = None):
+    def __init__(self,n_subdivision:int = None) -> None:
 
         # ICOSPHERE
         phi__ = (1 + np.sqrt(5)) / 2    # GOLDEN RATIO
@@ -56,7 +56,7 @@ class Icosphere():
             # for n in range(n_subdivision):
             #     self.subdivision()
 
-    def get_subdivision_pts(self,vertices:Vertices,face:Face,n:int=1):
+    def get_subdivision_pts(self,vertices:Vertices,face:Face,n:int=1) -> list[int]:
         idx0, idx1, idx2 = face
         v0, v1, v2 = vertices[idx0], vertices[idx1], vertices[idx2]
         is_old = False
@@ -91,7 +91,7 @@ class Icosphere():
 
         return vertices_idx
        
-    def get_subdivision_edges_and_faces(self,vertices_idx:list[int]):
+    def get_subdivision_edges_and_faces(self,vertices_idx:list[int]) -> tuple[set[Edge], set[Face]]:
         lines = []
         vertices_ = vertices_idx.copy()
         edges_ = set()
@@ -117,7 +117,7 @@ class Icosphere():
                 
         return edges_, faces_
 
-    def subdivision(self,n:int):
+    def subdivision(self,n:int) -> None:
         vertices_ = self.surf[0]
         _ = self.surf[1]
         faces = self.surf[2]
@@ -135,29 +135,26 @@ class Icosphere():
 
         self.surf = (vertices_, edges_, faces_)
 
-        
-        # self.surf = geom.subdivide_triangular_mesh(self.surf)
-
-    def get_vertices(self,as_array:bool = False):
+    def get_vertices(self,as_array:bool = False) -> list[Vector] | np.ndarray[Vector]:
         if as_array:
             return np.array(self.surf[0])
         else:
             return self.surf[0]
-    
-    def get_edges(self):
+        
+    def get_edges(self) -> set[Edge]:
         return self.surf[1]
     
-    def get_faces(self):
+    def get_faces(self) -> set[Face]:
         return self.surf[2]
     
-    def get_idx(self,v):
+    def get_idx(self,v) -> int:
         vertices_ = self.get_vertices()
         for i, u in enumerate(vertices_):
             if np.array_equal(u, v):  
                 return i
         return None  # RETURN None IF NOT FOUND
     
-    def get_neighbours(self,v):
+    def get_neighbours(self,v) -> np.ndarray[Vector]:
         vertices_ = self.get_vertices()
         edges_ = self.get_edges() 
         v_idx = self.get_idx(v)
@@ -166,7 +163,7 @@ class Icosphere():
 
         return neighbours
 
-    def get_normal(self,v):
+    def get_normal(self,v) -> Vector:
         # neighbours = self.get_neighbours(v)
         vertices_ = self.get_vertices(as_array=True)
 
@@ -179,7 +176,7 @@ class Icosphere():
 
         return normal_
     
-    def plot_surface(self,figsize=(10,6),v_color='blue',title=None):
+    def plot_surface(self,figsize=(10,6),v_color='blue',title=None) -> None:
             vertices_ = self.get_vertices(as_array=True)
 
             fig = plt.figure(figsize=figsize)
@@ -196,7 +193,7 @@ class Icosphere():
         
             plt.show()
 
-    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None):
+    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None,mesh:bool = False, mesh_color:str = 'gray') -> None:
 
         vertices_ = self.get_vertices(as_array=True)
 
@@ -204,6 +201,15 @@ class Icosphere():
         ax = fig.add_subplot(projection='3d')
 
         ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+        if mesh:
+            edges_ = self.get_edges()
+            for edge in edges_:
+                v0 = vertices_[edge[0]]
+                v1 = vertices_[edge[1]]
+                v = np.array([v0,v1])
+
+                ax.plot(v[:,0],v[:,1],v[:,2],color=mesh_color)
 
         for v in vertices_:
             # PLOT NORMAL AS ARROW 
@@ -224,7 +230,7 @@ class Icosphere():
 
         plt.show()
 
-    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None):
+    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None) -> None:
         vertices_ = self.get_vertices(as_array=True)
         edges_ = self.get_edges()
 
@@ -251,10 +257,10 @@ class Icosphere():
 
 class Cylinder():
      
-    def __init__(self,n_points:int=10,R:float=1.0):
+    def __init__(self,steps:int = 10, R:float = 1.0):
 
         # UNIFORM RECTANGULAR GRID OF [0,2PI] X [0,1] 
-        steps_ = n_points
+        steps_ = steps
         step_size_ = 1 / steps_
 
         phi_ = np.arange(0,2*np.pi + step_size_,step_size_)
@@ -262,18 +268,54 @@ class Cylinder():
 
         phi_,z_  = np.meshgrid(phi_,z_)
 
+        self.vertices_on_plane = np.c_[z_.ravel(),phi_.ravel()]
+
         # MAP TO CYLINDER
-        X_, Y_,Z_ = R*np.cos(phi_), R*np.sin(phi_), R*z_  
+        X_, Y_, Z_ = R*np.cos(self.vertices_on_plane[:,1]), R*np.sin(self.vertices_on_plane[:,1]), R*self.vertices_on_plane[:,0] 
 
-        vertices_ = list(np.array([X_.ravel(),Y_.ravel(),Z_.ravel()]).T)
+        vertices_ = list(np.c_[X_,Y_,Z_])
 
-        self.surf = (vertices_,None,None) # COMPUTE EDGES AND FACES
+        # COMPUTE EDGES AND FACES
+        phi_len_ = len(np.arange(0,2*np.pi + step_size_,step_size_))
+        z_len_ = len(np.arange(0,1 + step_size_,step_size_))
+        coord_lines = self.vertices_on_plane.reshape(z_len_,phi_len_,2) # COORDINATE LINES
+
+        edges_ = set()
+        faces_ = set()
+
+        cols = coord_lines.shape[0]
+        rows = coord_lines.shape[1]
+        for i in range(cols-1):
+            for j in range(rows-1):
+                edges_.update({(i*rows + j,i*rows + j+1)})
+                edges_.update({(i*rows + j ,(i+1)*rows + j)})
+                edges_.update({(i*rows + j ,(i+1)*rows + j + 1)})
+                
+                faces_.update({(i*rows + j,(i+1)*rows + j,(i+1)*rows + j+1)})
+                faces_.update({(i*rows + j,i*rows + j+1,(i+1)*rows + j+1)})
+
+        # BOUNDARY EDGES
+        # RIGHT BOUNDARY (VERTICAL) 
+        for j in range(rows-1):
+            edges_.update({((cols-1)*rows+j,(cols-1)*rows+j+1)})
+
+        # UPPER BOUNDARY (HORIZONTAL)
+        for i in range(cols-1):
+            edges_.update({(i*rows+(rows-1),(i+1)*rows+rows-1)})
+
+        self.surf = (vertices_,edges_,faces_) # COMPUTE EDGES AND FACES
 
     def get_vertices(self,as_array:bool = False):
         if as_array:
             return np.array(self.surf[0])
         else:
             return self.surf[0]
+        
+    def get_planar_vertices(self,as_array:bool = False) ->list[Vector] | np.ndarray[Vector]:
+        if as_array:
+            return self.vertices_on_plane
+        else:
+            return list(self.vertices_on_plane) 
     
     def get_edges(self):
         return self.surf[1]
@@ -281,6 +323,18 @@ class Cylinder():
     def get_faces(self):
         return self.surf[2]
 
+    def get_normal(self,v):
+        vertices_ = self.get_vertices(as_array=True)
+
+        nbrs = NearestNeighbors(n_neighbors=10, algorithm='ball_tree').fit(vertices_)
+        _, indices = nbrs.kneighbors([v])
+
+        neighbours = vertices_[indices.flatten()]
+
+        normal_, _, _ = geom.pca_analysis(v, neighbours)
+
+        return normal_
+    
     def plot_surface(self,figsize=(10,6),v_color='blue',title=None):
         vertices_ = self.get_vertices(as_array=True)
 
@@ -298,4 +352,86 @@ class Cylinder():
     
         plt.show()
         
+    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None):
+        vertices_ = self.get_vertices(as_array=True)
+        edges_ = self.get_edges()
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(projection='3d')
+
+        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+        for edge in edges_:
+            v0 = vertices_[edge[0]]
+            v1 = vertices_[edge[1]]
+            v = np.array([v0,v1])
+
+            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color)
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        if title:
+            plt.title(title)
+    
+        plt.show()
+
+    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None, mesh:bool = False,mesh_color:str = 'gray'):
+
+        vertices_ = self.get_vertices(as_array=True)
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(projection='3d')
+
+        ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+
+        if mesh:
+            edges_ = self.get_edges()
+            for edge in edges_:
+                v0 = vertices_[edge[0]]
+                v1 = vertices_[edge[1]]
+                v = np.array([v0,v1])
+
+                ax.plot(v[:,0],v[:,1],v[:,2],color=mesh_color)
+
+        for v in vertices_:
+            # PLOT NORMAL AS ARROW 
+            normal_ = scale*self.get_normal(v)
+            ax.quiver(
+                v[0], v[1], v[2], # START POINT OF VECTOR
+                normal_[0] , normal_[1], normal_[2], # DIRECTION
+                color = arr_color, alpha = 0.8, lw = 1,
+            )
+
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        if title:
+            plt.title(title)
+
+        plt.show()
+
+    def plot_planar_mesh(self,figsize:tuple[int,int] = (10,4),title:str = None) -> None:
+        vertices_ = self.get_planar_vertices()
+        edges_ = self.get_edges()
+
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot()
+
+        for v in vertices_:
+            ax.scatter(v[0],v[1],'k')
+
+        for edge in edges_:
+            v0 = self.vertices_on_plane[edge[0]]
+            v1 = self.vertices_on_plane[edge[1]]
+            v = np.array([v0,v1])
+
+            ax.plot(v[:,0],v[:,1],'gray')
+
+        plt.title(title)
+        plt.show()
+
      
