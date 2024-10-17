@@ -2,6 +2,12 @@
 
 **Work in progress**
 
+## TO DO
+* define proper triangulations and their refinements
+* implement Platonic solids
+
+## Abstract
+
 This small project is about minimal surfaces and the mean curvature flow of different shapes. 
 
 ``src/`` contains the scripts
