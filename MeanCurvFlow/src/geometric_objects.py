@@ -50,6 +50,20 @@ class GeometricObject3D():
 
         return normal_
     
+    def euler_char(self) -> int:
+        # DOES NOT YET WORK SINCE SO FAR WE ONLY DEFINE TRIG-MESHES NOT PROPER TRIANGULATIONS
+        """
+        computes the Euler characteristic of the surface
+
+        :returns: Euler characteristic chi = V - E + F
+        :rtype: int
+        """
+        V_ = len(self.get_vertices())
+        E_ = len(self.get_edges())
+        F_ = len(self.get_faces())
+
+        return V_ - E_ + F_
+    
     def plot_surface(self,figsize=(10,6),v_color='blue',title=None) -> None:
             vertices_ = self.get_vertices(as_array=True)
 
@@ -265,10 +279,12 @@ class Cylinder(GeometricObject3D):
 
         # UNIFORM RECTANGULAR GRID OF [0,2PI] X [0,1] 
         steps_ = steps
-        step_size_ = 1 / steps_
+        phi_steps_ = int(np.ceil(2*np.pi*R*steps_))
 
-        phi_ = np.arange(0,2*np.pi + step_size_,step_size_)
-        z_ = np.arange(0,1 + step_size_,step_size_)
+        z_ = np.linspace(0, 1, steps_+1)
+        phi_ = np.linspace(0, 2 * np.pi, phi_steps_+1)
+        cols = len(phi_)
+        rows = len(z_)
 
         phi_,z_  = np.meshgrid(phi_,z_)
 
@@ -279,35 +295,42 @@ class Cylinder(GeometricObject3D):
 
         vertices_ = list(np.c_[X_,Y_,Z_])
 
-        # COMPUTE EDGES AND FACES
-        phi_len_ = len(np.arange(0,2*np.pi + step_size_,step_size_))
-        z_len_ = len(np.arange(0,1 + step_size_,step_size_))
-        coord_lines = self.vertices_on_plane.reshape(z_len_,phi_len_,2) # COORDINATE LINES
+        # EDGES
+        row_idx = np.arange(rows).repeat(cols)      # [0,0,0,...,1,1,1,...,2,2,2,...,row,row,row]
+        col_idx = np.tile(np.arange(cols), rows)    # [0,1,2,...,0,1,2,...,0,1,2,...,...]
 
-        edges_ = set()
-        faces_ = set()
 
-        cols = coord_lines.shape[0]
-        rows = coord_lines.shape[1]
-        for i in range(cols-1):
-            for j in range(rows-1):
-                edges_.update({(i*rows + j,i*rows + j+1)})
-                edges_.update({(i*rows + j ,(i+1)*rows + j)})
-                edges_.update({(i*rows + j ,(i+1)*rows + j + 1)})
-                
-                faces_.update({(i*rows + j,(i+1)*rows + j,(i+1)*rows + j+1)})
-                faces_.update({(i*rows + j,i*rows + j+1,(i+1)*rows + j+1)})
+        # HORIZONTAL EDGES
+        # row_idx*cols = which row in which col => + col_idx = which element in that col
+        # for horizontal edges: since phi (varying along col) is angular coordinate, it wraps -> (col_idx + 1) % cols
+        horizontal_edges = np.c_[row_idx*cols + col_idx, row_idx*cols + (col_idx + 1) % cols ] 
 
-        # BOUNDARY EDGES
-        # RIGHT BOUNDARY (VERTICAL) 
-        for j in range(rows-1):
-            edges_.update({((cols-1)*rows+j,(cols-1)*rows+j+1)})
+        # VERTICAL EDGES
+        # row_idx[:-cols] -> considers all row indices up to the last one: [0,0,0,...,1,1,1,...2,2,2,...,row-1,row-1,row-1]
+        vertical_edges = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + col_idx[:-cols]]
 
-        # UPPER BOUNDARY (HORIZONTAL)
-        for i in range(cols-1):
-            edges_.update({(i*rows+(rows-1),(i+1)*rows+rows-1)})
+        # DIAGONAL EDGES
+        diagonal_edges = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + (col_idx[:-cols] + 1) % cols]
+        valid = col_idx[:-cols] < (cols - 1) # corner case: exclude the last diagonal
+        diagonal_edges = diagonal_edges[valid]
 
-        self.surf = (vertices_,edges_,faces_) # COMPUTE EDGES AND FACES
+        # STACK EDGES
+        edges_ = np.vstack([horizontal_edges,vertical_edges,diagonal_edges])
+        edges_ = set(map(tuple,edges_)) 
+
+
+        # FACES 
+        # Idea: consider rectangle  (i,i) , (i,i+1), (i+1,i), (i+1,i+1) and divide it into two triangles (faces) by the diagonal edge (i,i) -> (i+1,i+1)
+        # lower face = (i,i), (i+1,i), (i+1,i+1)
+        # upper face = (i,i), (i,i+1), (i+1,i+1)
+        lower_face = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + (col_idx[:-cols] + 1) % cols]
+        upper_face = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], row_idx[:-cols] * cols + (col_idx[:-cols] + 1) % cols, (row_idx[:-cols] + 1) * cols + (col_idx[:-cols] + 1) % cols]
+
+        faces_ = np.vstack([lower_face,upper_face]) 
+        faces_ = set(map(tuple,faces_))
+
+        # DEFINE SURFACE IN TERMS OF VERTICES, EDGES AND FACES
+        self.surf = (vertices_,edges_,faces_)
         
     def get_planar_vertices(self,as_array:bool = False) ->list[Vector] | np.ndarray[Vector]:
         if as_array:
@@ -316,21 +339,21 @@ class Cylinder(GeometricObject3D):
             return list(self.vertices_on_plane) 
   
     def plot_planar_mesh(self,figsize:tuple[int,int] = (10,4),title:str = None) -> None:
-        vertices_ = self.get_planar_vertices()
+        # vertices_on_plane = self.get_planar_vertices()
         edges_ = self.get_edges()
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot()
 
-        for v in vertices_:
-            ax.scatter(v[0],v[1],'k')
+        for v in self.vertices_on_plane:
+            ax.scatter(v[0],v[1],color='k')
 
         for edge in edges_:
             v0 = self.vertices_on_plane[edge[0]]
             v1 = self.vertices_on_plane[edge[1]]
             v = np.array([v0,v1])
 
-            ax.plot(v[:,0],v[:,1],'gray')
+            ax.plot(v[:,0],v[:,1],color='gray')
 
         plt.title(title)
         plt.show()
