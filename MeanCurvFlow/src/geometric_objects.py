@@ -7,6 +7,7 @@ sys.path.append(str(cwd.parent)+'/src/')
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from sklearn.neighbors import NearestNeighbors
 
@@ -51,7 +52,6 @@ class GeometricObject3D():
         return normal_
     
     def euler_char(self) -> int:
-        # DOES NOT YET WORK SINCE SO FAR WE ONLY DEFINE TRIG-MESHES NOT PROPER TRIANGULATIONS
         """
         computes the Euler characteristic of the surface
 
@@ -81,12 +81,25 @@ class GeometricObject3D():
         
             plt.show()
 
-    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None,mesh:bool = False, mesh_color:str = 'gray') -> None:
-
-        vertices_ = self.get_vertices(as_array=True)
+    def plot_normals(self,figsize=(10,6),v_color='blue',arr_color='black',scale:float=1.,title=None,mesh:bool = False, mesh_color:str = 'gray', fill:bool = False, fill_color:str = 'yellow') -> None:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(projection='3d')
+
+        if fill:
+            vertices_ = self.get_vertices(as_array=True)
+
+            for face in self.get_faces():
+                v0 = vertices_[face[0]]
+                v1 = vertices_[face[1]]
+                v2 = vertices_[face[2]]
+                triangle = [np.array([v0,v1,v2])]
+
+                poly = Poly3DCollection(triangle, facecolors=fill_color, edgecolors='gray', linewidths=1, alpha=0.3)
+                ax.add_collection3d(poly)
+
+        else:
+            vertices_ = self.get_vertices(as_array=True)
 
         ax.scatter(vertices_[:,0], vertices_[:, 1], vertices_[:, 2], color=v_color)
 
@@ -118,21 +131,36 @@ class GeometricObject3D():
 
         plt.show()
 
-    def plot_mesh(self,figsize=(10,6),v_color='blue',e_color='black',title=None) -> None:
-        vertices_ = self.get_vertices(as_array=True)
-        edges_ = self.get_edges()
+    def plot_mesh(self,figsize:tuple[int,int] = (10,6),v_color:str = 'blue', e_color:str = 'black', title:str = None, fill:bool = False, fill_color:str = 'yellow') -> None:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(projection='3d')
 
-        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color)
+        if fill:
+            vertices_ = self.get_vertices(as_array=True)
+
+            for face in self.get_faces():
+                v0 = vertices_[face[0]]
+                v1 = vertices_[face[1]]
+                v2 = vertices_[face[2]]
+                triangle = [np.array([v0,v1,v2])]
+
+                poly = Poly3DCollection(triangle, facecolors=fill_color, edgecolors='gray', linewidths=1, alpha=0.3)
+                ax.add_collection3d(poly)
+
+        else:
+            vertices_ = self.get_vertices(as_array=True)
+
+        edges_ = self.get_edges()
+
+        ax.scatter(vertices_[:, 0], vertices_[:, 1], vertices_[:, 2], color=v_color,zorder=1)
 
         for edge in edges_:
             v0 = vertices_[edge[0]]
             v1 = vertices_[edge[1]]
             v = np.array([v0,v1])
 
-            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color)
+            ax.plot(v[:,0],v[:,1],v[:,2],color=e_color,zorder=-1)
 
         ax.set_xlabel('x')
         ax.set_ylabel('y')
@@ -140,7 +168,7 @@ class GeometricObject3D():
 
         if title:
             plt.title(title)
-    
+
         plt.show()
 
 
@@ -274,88 +302,127 @@ class Icosphere(GeometricObject3D):
 
 
 class Cylinder(GeometricObject3D):
-     
-    def __init__(self,steps:int = 10, R:float = 1.0):
+
+    def __init__(self,steps:int = 10, radius:float = 1.0, height: float = 1.0):
+
+        self.R = radius
 
         # UNIFORM RECTANGULAR GRID OF [0,2PI] X [0,1] 
-        steps_ = steps
-        phi_steps_ = int(np.ceil(2*np.pi*R*steps_))
 
-        z_ = np.linspace(0, 1, steps_+1)
-        phi_ = np.linspace(0, 2 * np.pi, phi_steps_+1)
-        cols = len(phi_)
+        steps_ = steps
+        phi_steps_ = int(np.ceil(2*np.pi*self.R*steps_))
+
+        z_ = np.linspace(0, height, steps_+1)
+        z_proper = z_.copy()
+        phi_ = np.linspace(0, 2 * np.pi, phi_steps_+1) 
+        phi_proper = phi_.copy()[:-1] # due to periodic identification of phi consider only up to last point 
+
+        cols = len(phi_) 
         rows = len(z_)
 
-        phi_,z_  = np.meshgrid(phi_,z_)
+        phi_, z_  = np.meshgrid(phi_,z_) # for plotting and defining edges and faces
+        phi_proper, z_proper  = np.meshgrid(phi_proper,z_proper) # considering periodic identification of phi 
 
-        self.vertices_on_plane = np.c_[z_.ravel(),phi_.ravel()]
+        self.vertices_on_plane_padded = np.c_[phi_.ravel(),z_.ravel()] 
+        vertices_on_plane_ = np.c_[phi_proper.ravel(),z_proper.ravel()] 
 
         # MAP TO CYLINDER
-        X_, Y_, Z_ = R*np.cos(self.vertices_on_plane[:,1]), R*np.sin(self.vertices_on_plane[:,1]), R*self.vertices_on_plane[:,0] 
+        X_, Y_, Z_ = self.R*np.cos(vertices_on_plane_[:,0]), self.R*np.sin(vertices_on_plane_[:,0]), self.R*vertices_on_plane_[:,1] 
 
         vertices_ = list(np.c_[X_,Y_,Z_])
 
         # EDGES
-        row_idx = np.arange(rows).repeat(cols)      # [0,0,0,...,1,1,1,...,2,2,2,...,row,row,row]
-        col_idx = np.tile(np.arange(cols), rows)    # [0,1,2,...,0,1,2,...,0,1,2,...,...]
-
+        row_idx = np.arange(rows).repeat(cols-1)          # [0,0,0,...,1,1,1,...,2,2,2,...,row,row,row]
+        col_idx = np.tile(np.arange(cols-1), rows)        # [0,1,2,...,0,1,2,...,0,1,2,...,...]
+        row_idx_padded = np.arange(rows).repeat(cols)     # [0,0,0,...,1,1,1,...,2,2,2,...,row,row,row]
+        col_idx_padded = np.tile(np.arange(cols), rows)
+ 
+        # EDGES & FACES
+        # idea: in plane, have grid of (phi,z) points -> m x n = len(phi) x len(z) matrix =>  (m*n,) vector (array) 
+        # find indices of horizontal, vertical and diagonal edges, stack and return them as a set of tuples
 
         # HORIZONTAL EDGES
-        # row_idx*cols = which row in which col => + col_idx = which element in that col
-        # for horizontal edges: since phi (varying along col) is angular coordinate, it wraps -> (col_idx + 1) % cols
-        horizontal_edges = np.c_[row_idx*cols + col_idx, row_idx*cols + (col_idx + 1) % cols ] 
+        # row_idx*cols = z-coordinate (row) , col_idx = phi-coordinate (col) => row_idx*cols + col_idx = index of (phi,z) coordinate
+        
+        horizontal_edges = np.c_[(row_idx*cols) + col_idx, (row_idx*cols) + (col_idx + 1)]
 
         # VERTICAL EDGES
-        # row_idx[:-cols] -> considers all row indices up to the last one: [0,0,0,...,1,1,1,...2,2,2,...,row-1,row-1,row-1]
-        vertical_edges = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + col_idx[:-cols]]
+        
+        vertical_edges = np.c_[row_idx[:-cols + 1] * cols + col_idx[:-cols + 1], (row_idx[:-cols + 1] + 1) * cols + col_idx[:-cols + 1]]
+        vertical_edges_padded = np.c_[row_idx_padded[:-cols] * cols + col_idx_padded[:-cols], (row_idx_padded[:-cols] + 1) * cols + col_idx_padded[:-cols]] # padding needed for plotting
 
         # DIAGONAL EDGES
-        diagonal_edges = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + (col_idx[:-cols] + 1) % cols]
-        valid = col_idx[:-cols] < (cols - 1) # corner case: exclude the last diagonal
-        diagonal_edges = diagonal_edges[valid]
+        diagonal_edges = np.c_[row_idx[:-cols+1] * cols + col_idx[:-cols+1], (row_idx[:-cols+1] + 1) * cols + (col_idx[:-cols+1] + 1)]
 
         # STACK EDGES
-        edges_ = np.vstack([horizontal_edges,vertical_edges,diagonal_edges])
-        edges_ = set(map(tuple,edges_)) 
+        self.edges_padded = np.vstack([horizontal_edges,vertical_edges_padded,diagonal_edges]) 
 
+        edges_ = np.vstack([horizontal_edges,vertical_edges,diagonal_edges])
+        edges_.sort() # sort faces such that (i,j) satisfies i < j
+        edges_ = set((map(tuple,edges_)))
 
         # FACES 
-        # Idea: consider rectangle  (i,i) , (i,i+1), (i+1,i), (i+1,i+1) and divide it into two triangles (faces) by the diagonal edge (i,i) -> (i+1,i+1)
-        # lower face = (i,i), (i+1,i), (i+1,i+1)
-        # upper face = (i,i), (i,i+1), (i+1,i+1)
-        lower_face = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + col_idx[:-cols], (row_idx[:-cols] + 1) * cols + (col_idx[:-cols] + 1) % cols]
-        upper_face = np.c_[row_idx[:-cols] * cols + col_idx[:-cols], row_idx[:-cols] * cols + (col_idx[:-cols] + 1) % cols, (row_idx[:-cols] + 1) * cols + (col_idx[:-cols] + 1) % cols]
+        upper_face = np.c_[row_idx[:-(cols-1)] * cols + col_idx[:-(cols-1)], (row_idx[:-(cols-1)] + 1) * cols + col_idx[:-(cols-1)], (row_idx[:-(cols-1)] + 1) * cols + (col_idx[:-(cols-1)] + 1) ]
+        lower_face = np.c_[row_idx[:-(cols-1)] * cols + col_idx[:-(cols-1)], row_idx[:-(cols-1)] * cols + (col_idx[:-(cols-1)] + 1), (row_idx[:-(cols-1)] + 1) * cols + (col_idx[:-(cols-1)] + 1) ]
 
-        faces_ = np.vstack([lower_face,upper_face]) 
+        faces_ = np.vstack([upper_face,lower_face]) 
+        faces_.sort() # sort faces such that (i,j,k) satisfies i < j < k
         faces_ = set(map(tuple,faces_))
 
-        # DEFINE SURFACE IN TERMS OF VERTICES, EDGES AND FACES
+        # DEFINE SURFACE IN TERMS OF VERTICES, EDGES AND FACES (TRIANGULATION)
         self.surf = (vertices_,edges_,faces_)
-        
+           
     def get_planar_vertices(self,as_array:bool = False) ->list[Vector] | np.ndarray[Vector]:
         if as_array:
             return self.vertices_on_plane
         else:
             return list(self.vertices_on_plane) 
   
-    def plot_planar_mesh(self,figsize:tuple[int,int] = (10,4),title:str = None) -> None:
-        # vertices_on_plane = self.get_planar_vertices()
-        edges_ = self.get_edges()
+    def plot_planar_mesh(self,fill:bool = False, fill_color:str = 'yellow', figsize:tuple[int,int] = (10,4),title:str = None) -> None:
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot()
 
-        for v in self.vertices_on_plane:
-            ax.scatter(v[0],v[1],color='k')
-
-        for edge in edges_:
-            v0 = self.vertices_on_plane[edge[0]]
-            v1 = self.vertices_on_plane[edge[1]]
+        for edge in self.edges_padded:
+            v0 = self.vertices_on_plane_padded[edge[0]]
+            v1 = self.vertices_on_plane_padded[edge[1]]
             v = np.array([v0,v1])
 
-            ax.plot(v[:,0],v[:,1],color='gray')
+            if (v0[0] % (2*np.pi) < 1e-8) and (v0[0] != 0.0):
+                ax.plot(v[:,0],v[:,1],color='gray',ls='--',zorder=-1)
+            else:
+                ax.plot(v[:,0],v[:,1],color='gray',zorder=-1)
+            
+        for v in self.vertices_on_plane_padded:
+            if (v[0] % (2*np.pi) < 1e-8) and (v[0] != 0.0):
+                ax.scatter(v[0],v[1],edgecolor='k',facecolors='w',zorder=1)
+            else:
+                ax.scatter(v[0],v[1],color='k',zorder=1)
+
+        if fill:
+            for face in self.get_faces():
+                v0 = self.vertices_on_plane_padded[face[0]]
+                v1 = self.vertices_on_plane_padded[face[1]]
+                v2 = self.vertices_on_plane_padded[face[2]]
+                triangle = np.array([v0,v1,v2])
+
+                ax.fill(triangle[:, 0], triangle[:, 1], color=fill_color, alpha=0.3,zorder=-2)
 
         plt.title(title)
         plt.show()
 
-     
+    def plot_mesh(self,figsize:tuple[int,int] =(10,6),v_color:str ='blue', e_color:str ='black', title:str = None,fill:bool = False, fill_color:str = 'yellow') -> None:
+        cp_ = self.surf[0].copy()
+        X_, Y_, Z_ = self.R*np.cos(self.vertices_on_plane_padded[:,0]), self.R*np.sin(self.vertices_on_plane_padded[:,0]), self.R*self.vertices_on_plane_padded[:,1] 
+        vertices_ = list(np.c_[X_,Y_,Z_])
+        self.surf = (vertices_, *self.surf[1:])
+        super().plot_mesh(figsize=figsize,v_color=v_color, e_color=e_color, title=title, fill=fill, fill_color=fill_color)
+        self.surf = (cp_, *self.surf[1:])
+
+    def plot_normals(self, figsize:tuple[int,int] = (10,6), v_color:str = 'blue', arr_color:str = 'black', scale:float = 1.0, title:str = None, mesh:bool = False, mesh_color:str = 'gray', fill:bool = False, fill_color:str = 'yellow') -> None:
+        cp_ = self.surf[0].copy()
+        X_, Y_, Z_ = self.R*np.cos(self.vertices_on_plane_padded[:,0]), self.R*np.sin(self.vertices_on_plane_padded[:,0]), self.R*self.vertices_on_plane_padded[:,1] 
+        vertices_ = list(np.c_[X_,Y_,Z_])
+        self.surf = (vertices_, *self.surf[1:])
+        super().plot_normals(figsize = figsize, v_color = v_color, arr_color = arr_color, scale = scale, title = title, mesh = mesh, mesh_color = mesh_color, fill = fill, fill_color = fill_color)
+        self.surf = (cp_, *self.surf[1:])
