@@ -171,6 +171,13 @@ class GeometricObject3D():
 
         plt.show()
 
+    def info(self) -> None:
+        """
+        prints the number of vertices (V), edges (E) and faces (F) of the triangulation of the surface
+        """
+        print(f'V = {len(self.get_vertices())}')
+        print(f'E = {len(self.get_edges())}')
+        print(f'F = {len(self.get_faces())}')
 
 class Icosphere(GeometricObject3D):
     
@@ -202,13 +209,12 @@ class Icosphere(GeometricObject3D):
 
         if n_subdivision:
             self.subdivision(n_subdivision)
-            # for n in range(n_subdivision):
-            #     self.subdivision()
+
 
     def get_subdivision_pts(self,vertices:Vertices,face:Face,n:int=1) -> list[int]:
         idx0, idx1, idx2 = face
         v0, v1, v2 = vertices[idx0], vertices[idx1], vertices[idx2]
-        is_old = False
+        is_new = True
 
         vertices_idx = []
 
@@ -219,7 +225,9 @@ class Icosphere(GeometricObject3D):
             p2 = v0 + (i / n) * (v2 - v0) 
 
             # ith LINE HAS TWO POINTS ON THE OUTER EDGES AND i POINTS ON THE LINE CONNECTING THOSE POINTS
+            
             for j in range(i+1):
+                is_new = True
                 if i > 0:
                     p = p1 + (j/i)*(p2-p1)
                 else:
@@ -227,16 +235,15 @@ class Icosphere(GeometricObject3D):
                 
                 # CHECK IF ALREADY IN VERTICES
                 for idx, v in enumerate(vertices):
-                    if np.allclose(p, v, atol=1e-8): # CHECKS (UP TO TOLERANCE IF TWO ELEMENTS ARE THE SAME)
+                    if np.allclose(p/np.linalg.norm(p), v, atol=1e-8): # CHECKS (UP TO TOLERANCE IF TWO ELEMENTS ARE THE SAME)
                         vertices_idx.append(idx) # IF p ALREADY IN vertices, RETURN ITS INDEX
-                        is_old = True
-                    
-                if not is_old:
+                        is_new = False
+                        break
+                        
+                if is_new:
                     # IF p IS NOT IN vertices, NORMALISE (TO LIE ON SPHERE), ADD IT (UNIT NORM) AND RETURN ITS INDEX
                     vertices.append(p/np.linalg.norm(p)) 
                     vertices_idx.append(len(vertices)-1)
-                
-                is_old = False
 
         return vertices_idx
        
@@ -245,6 +252,7 @@ class Icosphere(GeometricObject3D):
         vertices_ = vertices_idx.copy()
         edges_ = set()
         faces_ = set()
+       
         n = int(1/2 * (-1 + np.sqrt(8 *len(vertices_) + 1)) - 1)  # INVERSE TRIANGULAR NUMBER, ZERO-BASED
         for k in range(1,n+2):
             lines.append(vertices_[:k])
@@ -260,7 +268,6 @@ class Icosphere(GeometricObject3D):
                 if (k > 0) & (i < k):
                     f.update({tuple(sorted([lines[k][i],lines[k][i+1],lines[k+1][i+1]]))})
                 
-
                 edges_.update({e1,e2,e3})
                 faces_.update(f)
                 
@@ -275,8 +282,6 @@ class Icosphere(GeometricObject3D):
         edges_ = set()
 
         for face in faces:
-            v0, v1, v2 = vertices_[face[0]], vertices_[face[1]], vertices_[face[2]]
-
             vertices_idx_ = self.get_subdivision_pts(vertices_,face,n)
             new_edges_, new_faces_ = self.get_subdivision_edges_and_faces(vertices_idx_)
             edges_.update(new_edges_)
