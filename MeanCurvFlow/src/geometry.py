@@ -48,8 +48,6 @@ def get_new_edges(new_vertices_idx:list[int]):
 def get_new_faces():
     pass
 
-
-
 def get_midpoint_idx(v1,v2,vertices):
     m = v1 + (v2 - v1) / 2
 
