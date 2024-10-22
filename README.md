@@ -34,6 +34,26 @@ The image, which is essentially just a 2D array, can be interpreted as a 2D dist
 
 We then sample points according to the distribution defined by the input image using the inverse transform sampling. In order to see if we sample correctly, we plot the randomly drawn points in a scatter plot. The color of each point is represented by its probability to being randomly drawn. If we did everything correctly, we should get back (an impressionistic interpretation of) our original image!
 
+**Example** 
+
+(left: original image, right: sampled image)
+
+<p align="center">
+  <p align="left" >
+    <img align="left" float="left"  src="https://github.com/dHuberYoumans/maths/blob/main/images/Eddie.jpeg" title="original image" height=400px width=auto />
+  </p>
+  <img align="middle" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/Eddie_sampled.png" title="sampeld image" height=400px width=auto />
+</p>
+
+
+
+
+
+
+
+
+
+
 
 ### MeanCurvFlow
 
