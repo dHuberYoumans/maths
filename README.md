@@ -9,9 +9,6 @@ The projects highlight the (maybe not so surprising) similarities of concepts of
 - [The Projects](#the-projects)  
     * [ImgSampling](#imgsampling)
 
- 
-
-
 ## Getting Started 
 
 Most of the projects are either given in terms of a Python script possibily in addition to a Jupyter notebook showcasing how to work with the script.
@@ -85,31 +82,21 @@ class Cylinder(GeometricObject3D):
     # define triangulation of the cyliner
 ```
 
-Once defined, one can then plot the surface in various ways, as a _cloud of points_
+Once defined, one can then plot the surface in various ways, for example as a _cloud of points_, its _triangulation_ or its _normals_
 
 ```
 cylinder = geomObj.Cylinder(steps=2)
 
-cylinder.plot_planar_mesh(fill=False,title='planar triangulation of the cylinder')
 cylinder.plot_cloud_of_pts(title='surface as cloud of points')
 cylinder.plot_mesh(v_color='k',e_color='gray',title=f'triangulation (filled faces)',fill=True)
 cylinder.plot_normals(scale=0.3,title='normals with mesh and filled faces',mesh=True,fill=True)
 ```
 
 <p align="center">
-  <img align="top" float="left"  src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_planar_triangulation.png" title="original image" height=400px width=auto />
-  <img align="top" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_cloud_of_pts.png" title="sampeld image" height=400px width=auto />
-  <img align="top" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_mesh_filled.png" title="sampeld image" height=400px width=auto />
-   <img align="top" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="sampeld image" height=400px width=auto />
+     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_cloud_of_pts.png" title="sampeld image" height=300px width=auto />
+     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_mesh_filled.png" title="sampeld image" height=300px width=auto />
+      <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="sampeld image" height=300px width=auto />
 </p>
 
 
-
-
-
-
-
-
-
-### MeanCurvFlow
 
