@@ -8,6 +8,7 @@ The projects highlight the (maybe not so surprising) similarities of concepts of
 - [Prerequisites](#prerequisites)  
 - [The Projects](#the-projects)  
     * [ImgSampling](#imgsampling)
+    * [MeanCurvFlow](#meancurvflow)
 
 ## Getting Started 
 
@@ -93,9 +94,9 @@ cylinder.plot_normals(scale=0.3,title='normals with mesh and filled faces',mesh=
 ```
 
 <p align="center">
-     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_cloud_of_pts.png" title="sampeld image" height=300px width=auto />
-     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_mesh_filled.png" title="sampeld image" height=300px width=auto />
-      <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="sampeld image" height=300px width=auto />
+     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_cloud_of_pts.png" title="cloud of points" height=300px width=auto />
+     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_mesh_filled.png" title="triangulation" height=300px width=auto />
+      <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="normals" height=300px width=auto />
 </p>
 
 
