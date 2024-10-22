@@ -64,7 +64,7 @@ class GeometricObject3D():
 
         return V_ - E_ + F_
     
-    def plot_surface(self,figsize=(10,6),v_color='blue',title=None) -> None:
+    def plot_cloud_of_pts(self,figsize=(10,6),v_color='blue',title=None) -> None:
             vertices_ = self.get_vertices(as_array=True)
 
             fig = plt.figure(figsize=figsize)
