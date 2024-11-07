@@ -56,6 +56,8 @@ We then sample points according to the distribution defined by the input image u
   <img align="middle" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/Eddie_sampled.png" title="sampeld image" height=400px width=auto />
 </p>
 
+**Remark** There are other sampling algotithms, for example _rejection sampling_ (see the [documentation](https://github.com/dHuberYoumans/maths/blob/main/ImgSampling/README.md)) for more information), which we implement as well.
+
 ### MeanCurvFlow
 
 This project is about "minimal surfaces". In mathematics, one way to definition states that a surfaces with vanishing _mean curvature_ is called a _minimal surface_.
