@@ -32,7 +32,7 @@ p(x) = \begin{cases} \frac{1}{b - a} \quad &\text{if~} x \in [a,b] \\\\ \\\\ 0 \
 $$
 
 <p align="center">
- <img align="top"  src="https://github.com/dHuberYoumans/maths/blob/ImgSampling/img_README/uniform_pdf.png" title="uniform distribution" height=300px width=auto />
+ <img align="top"  src="https://github.com/dHuberYoumans/maths/tree/main/ImgSampling/img_README/uniform_pdf.png" title="uniform distribution" height=300px width=auto />
 </p>
 
 In the continous case, the probability of $X$ being smaller or equal to a certian given number $x$ is given by the cumulative distribution function (cdf) represented by the integral
@@ -40,7 +40,7 @@ In the continous case, the probability of $X$ being smaller or equal to a certia
 $$ F_X(x) = P(X \leq x) = \int_{-\infty}^x p(x) dx $$
 
 <p align="center">
- <img align="top"  src="https://github.com/dHuberYoumans/maths/blob/ImgSampling/img_README/uniform_cdf.png" title="uniform distribution" height=300px width=auto />
+ <img align="top"  src="https://github.com/dHuberYoumans/maths/tree/main/ImgSampling/img_README/uniform_cdf.png" title="uniform distribution" height=300px width=auto />
 </p>
 
 And due to the linear properties of the integral, we can compute the probability to throw a number $x$ such that $a < x < b$ simply by considering 
