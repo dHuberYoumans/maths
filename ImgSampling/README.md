@@ -149,6 +149,6 @@ $$P(A) = \int \frac{f(x)}{M\cdot g(x)} \cdot g(x) dx = \frac{1}{M} \int f(x) dx 
 
 Substituting this yields that drawing a sample $\hat x$ under the condition that we accept it is given indeed by the pdf $p(x)$ we are trying to sample from!
 
-$$P(\hat x \mid A) = \frac{\frac{f(\hat x)}{M\cdot g(\hat x)}\cdot g(\hat x)}{P(A)} = \frac{\frac{f(\hat x)}{M}}{\frac{N}{M}} = \frac{f(\hat x)}{N} = p(\hat x)$$?E
+$$P(\hat x \mid A) = \frac{\frac{f(\hat x)}{M\cdot g(\hat x)}\cdot g(\hat x)}{P(A)} = \frac{\frac{f(\hat x)}{M}}{\frac{N}{M}} = \frac{f(\hat x)}{N} = p(\hat x)$$
 
 
