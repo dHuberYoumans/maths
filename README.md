@@ -9,7 +9,7 @@ The projects highlight the (maybe not so surprising) similarities of concepts of
 - [The Projects](#the-projects)  
     * [ImgSampling](#imgsampling)
     * [MeanCurvFlow](#meancurvflow)
-    * [Conway's Game of Life](#conway-s-game-of-life)
+    * [Conway's Game of Life](#conways-game-of-life)
 
 ## Getting Started 
 
@@ -97,17 +97,14 @@ cylinder.plot_normals(scale=0.3,title='normals with mesh and filled faces',mesh=
 ```
 
 <p align="center">
-     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_cloud_of_pts.png" title="cloud of points" height=300px width=auto />
-     <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_mesh_filled.png" title="triangulation" height=300px width=auto />
-      <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="normals" height=300px width=auto />
+     <img src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_cloud_of_pts.png" title="cloud of points" height=300px width=auto />
+     <img src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_mesh_filled.png" title="triangulation" height=300px width=auto />
+      <img src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="normals" height=300px width=auto />
 </p>
+
 
 ## Conway's Game of Life
 This project is an implementation of the Conway's famous *Game of Life*.
-
-<p align="center">
-  <img src="https://github.com/dHuberYoumans/maths/blob/main/images/GoL_Toad.gif" alt="animated" width=500px height=auto />
-</p>
 
 The rules are simple: The earth is a flat, quadrilateralized torus---a doughnut modeled by a grid of squares with periodic boundary conditions; going out one side one enters again from the opposite side. The classic _Pac-Man_ or _Snake_ scenario.
 
@@ -123,5 +120,9 @@ If you want to pause to study or modify the current population, simply press the
 Finally, one can reset the world with the _Reset_ button.
 
 Have fun!
+
+<p align="center">
+  <img src="https://github.com/dHuberYoumans/maths/blob/main/images/GoL_Toad.gif" alt="animated" width=500px height=auto />
+</p>
 
 
