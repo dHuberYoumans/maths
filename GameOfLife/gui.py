@@ -115,7 +115,7 @@ class GUI():
     def run(self):
         self.loop = True
         self.create_lattice()
-        init_population = self.get_selected()
+        init_population = self.get_live_cells()
         self.init_lattice(init_population)
 
         self.next_gen()
@@ -125,7 +125,7 @@ class GUI():
         
     def play(self):
         self.loop = True
-        curr_population = self.get_colored()
+        curr_population = self.get_live_cells()
         self.lattice.clear()
         self.init_lattice(curr_population)
         self.next_gen()
@@ -153,7 +153,7 @@ class GUI():
         else: # if paused (self.loop = False), update live cells
             self.live_cells = self.get_live_from_lattice() 
     
-    def get_selected(self):
+    def get_live_cells(self):
         return self.live_cells
     
     def create_lattice(self): # init lattice
