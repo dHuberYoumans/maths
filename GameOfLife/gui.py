@@ -14,6 +14,7 @@ class GUI():
         self.Y = Y
         self.off = off
         self.root = tk.Tk()
+        self.root.title("Conway's Game of Life")
         self.root.geometry(f'{self.X+self.off}x{self.Y+self.off}')
 
         # cell geometry
