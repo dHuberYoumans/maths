@@ -68,9 +68,9 @@ class GUI():
         for i in range(self.ROW):
             for j in range(self.COL):
                 id = self.canvas.create_rectangle(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill='white',outline='black')
-                self.rectangles[id] = (i, j) # store rectangle ids
+                self.rectangles[id] = (j, i) # rectangle ids -> (col,row)
 
-        self.grid = { (a,b):rectangle_id  for rectangle_id, (a,b) in self.rectangles.items()} # coord <-> rectangle ids
+        self.grid = { (b,a):rectangle_id  for rectangle_id, (a,b) in self.rectangles.items()} # (col,row) -> rectangle ids
 
         # event: click on rectangle to change color
         self.canvas.bind("<Button-1>", self.change_color)
@@ -88,11 +88,25 @@ class GUI():
 
                 # update selected indices
                 if new_color == "black":
-                    self.selected.append((i, j))
+                    self.selected.append((i, j)) # (col,row)
                 else:
-                    self.selected.remove((i, j))
+                    try:
+                        self.selected.remove((i, j)) # (col,row)
+                    except Exception as e:
+                        print(self.selected)
+                        print(f'{e}: {(i,j)}')
                 break
+            
+               
+    def get_colored(self):
+        colored = []
+        for rectangle_id, (i, j) in self.rectangles.items():
+            current_color = self.canvas.itemcget(rectangle_id, "fill")
+            if current_color == "black":
+                colored.append((i,j)) 
 
+        return colored
+        
     def run(self):
         self.loop = True
         self.create_lattice()
@@ -103,25 +117,28 @@ class GUI():
 
     def pause(self):
         self.loop = False
+        self.selected = self.get_colored()
 
     def play(self):
         self.loop = True
+        curr_population = self.get_colored()
+        self.lattice.clear()
+        self.init_lattice(curr_population)
         self.next_gen()
 
-    
-    def next_gen(self):
 
+    def next_gen(self):
         self.lattice.update()
-        live = np.where(self.lattice.get_states() == True)
-        dead = np.where(self.lattice.get_states() == False)
+        live = self.lattice.get_alive()
+        dead = self.lattice.get_dead()
 
         # update colors
-        for (a,b) in list(zip(live[0],live[1])):
-            rectangle_id = self.grid[(a,b)]
+        for (a,b) in live:
+            rectangle_id = self.grid[(b,a)] # access via (col,row)
             self.canvas.itemconfig(rectangle_id, fill='black')
 
-        for (a,b) in list(zip(dead[0],dead[1])):
-            rectangle_id = self.grid[(a,b)]
+        for (a,b) in dead:
+            rectangle_id = self.grid[(b,a)] # access via (col,row)
             self.canvas.itemconfig(rectangle_id, fill='white')
 
         # display count of gens
@@ -130,9 +147,7 @@ class GUI():
 
         if self.loop:
             self.canvas.after(200, self.next_gen)
-
-            
-
+    
 
     def get_selected(self):
         return self.selected

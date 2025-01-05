@@ -24,12 +24,17 @@ class Lattice():
         for cell in self.grid[row_idx,col_idx]:
             cell.set(state)
 
-
     def get_states(self, grid = None):
         if grid is not None:
             return np.array([[cell.get() for cell in row] for row in grid])
         else:
             return np.array([[cell.get() for cell in row] for row in self.grid])
+        
+    def get_alive(self):
+        return list(zip(*np.where(self.get_states() == True)))
+    
+    def get_dead(self):
+        return list(zip(*np.where(self.get_states() == False)))
     
     def plot(self, ax = None):
         data_ = self.get_states()
@@ -38,12 +43,8 @@ class Lattice():
         else:
             self.img = plt.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r')
         
-
-    def animate(self, frame):
-        self.update()
-        self.img.set_data(self.get_states())
-        return [self.img]
-        
+    def clear(self):
+        self.grid = np.array([[Cell() for i in range(self.size)] for j in range(self.size)])
 
     def update(self):
         # bottom
