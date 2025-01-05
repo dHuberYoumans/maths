@@ -48,17 +48,17 @@ class GUI():
         button_frame = tk.Frame(self.root)
         button_frame.pack(pady=10)  # Add some vertical padding
 
-        # run button
-        self.button_go = tk.Button(button_frame,text='Go!',command=self.run)
-        self.button_go.pack(side=tk.LEFT,padx=5)
+        # play button
+        self.button_play = tk.Button(button_frame,text="Play",command=self.play)
+        self.button_play.pack(side=tk.LEFT,padx=5)
 
-        # stop buttom
-        self.button_stop = tk.Button(button_frame,text='Pause',command=self.pause)
+        # stop button
+        self.button_stop = tk.Button(button_frame,text="Pause",command=self.pause)
         self.button_stop.pack(side=tk.LEFT,padx=5)
 
-        # continue buttom
-        self.button_stop = tk.Button(button_frame,text='Continue',command=self.play)
-        self.button_stop.pack(side=tk.RIGHT,padx=5)
+        # reset button
+        self.button_reset = tk.Button(button_frame,text="Reset",command=self.reset)
+        self.button_reset.pack(side=tk.RIGHT,padx=5)
 
     def create_grid(self):
         # store rectangle IDs and indices
@@ -112,23 +112,29 @@ class GUI():
         except Exception:
             print('lattice not initialised.')
 
-    def run(self):
-        self.loop = True
-        self.create_lattice()
-        init_population = self.get_live_cells()
-        self.init_lattice(init_population)
-
-        self.next_gen()
-
     def pause(self):
         self.loop = False
         
     def play(self):
         self.loop = True
         curr_population = self.get_live_cells()
-        self.lattice.clear()
+
+        try:
+            self.lattice.clear()
+        except:
+            self.create_lattice()
+
         self.init_lattice(curr_population)
         self.next_gen()
+    
+    def reset(self):
+        self.lattice.clear()
+        self.live_cells = []
+        self.gens = 0
+        for rectangle_id, (i, j) in self.rectangles.items():
+            self.canvas.itemconfig(rectangle_id, fill="white")
+        self.gen_label.config(text=f"generation: {self.gens}")
+
 
     def next_gen(self):
         self.lattice.update()
