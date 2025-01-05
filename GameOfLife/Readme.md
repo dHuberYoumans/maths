@@ -144,17 +144,17 @@ Here are some nice examples from various [starting configurations](https://en.wi
 
 **The Toad**
 <p align="center">
-  <img src="https://github.com/dHuberYoumans/maths/tree/main/GameOfLife/img_README/GoL_Toad.gif" alt="animated" width=500px height=auto />
+  <img src="https://github.com/dHuberYoumans/maths/blob/main/GameOfLife/img_README/GoL_Toad.gif" alt="animated" width=500px height=auto />
 </p>
 
 **The Glider**
 <p align="center">
-  <img src="https://github.com/dHuberYoumans/maths/tree/main/GameOfLife/img_README/GoL_Glider.gif" alt="animated" width=500px height=auto />
+  <img src="https://github.com/dHuberYoumans/maths/blob/main/GameOfLife/img_README/GoL_Glider.gif" alt="animated" width=500px height=auto />
 </p>
 
 **Heavy Weight Space Ship (HWSS)**
 <p align="center">
-  <img src="https://github.com/dHuberYoumans/maths/tree/main/GameOfLife/img_README/GoL_HWSS.gif" alt="animated" width=500px height=auto />
+  <img src="https://github.com/dHuberYoumans/maths/blob/main/GameOfLife/img_README/GoL_HWSS.gif" alt="animated" width=500px height=auto />
 </p>
 
 And that's it! Happy Hunting!
