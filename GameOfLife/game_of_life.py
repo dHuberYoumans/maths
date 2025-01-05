@@ -40,9 +40,9 @@ class Lattice():
     def plot(self, ax = None):
         data_ = self.get_states()
         if ax is not None:
-            sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r',ax = ax)# self.img = ax.imshow(data_, cmap='gray_r', interpolation='nearest') #
+            sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket',ax = ax)# self.img = ax.imshow(data_, cmap='gray_r', interpolation='nearest') #
         else:
-            sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r') #self.img = plt.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r')
+            sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket') #self.img = plt.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r')
         
 
     def clear(self):
