@@ -118,7 +118,7 @@ There is a lot of interesting maths behind this beautifully simple game: the the
 
 To play around with the project, simply run ```main.py``` with Python (tested with Python v.3.11).
 It will prompt our little world as a 20x20 grid (the size can be adjusted by modifing ```main.py```).
-To generate a population, simply click on those cells which should live (_white_ means live, _black_ means death) and hit the _Play_ button. 
+To generate a population, simply click on those cells which should live (_black_ means live, _white_ means dead) and hit the _Play_ button. 
 If you want to pause to study or modify the current population, simply press the _Pause_ botton and again the _Play_ button to continue. 
 Finally, one can reset the world with the _Reset_ button.
 
