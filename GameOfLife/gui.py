@@ -8,21 +8,58 @@ class GUI():
         # grid size
         self.ROW = row
         self.COL = col
-
-        # window size
+        
+        # window 
         self.X = X
         self.Y = Y
         self.off = off
-
         self.root = tk.Tk()
-
-        # set geometry
         self.root.geometry(f'{self.X+self.off}x{self.Y+self.off}')
 
-        # canvas
+        # cell geometry
+        self.cell_width = X//self.COL
+        self.cell_height = Y//self.ROW
+        
+        # gens
+        self.gens = 0
+
+        # loop
+        self.loop = True
+
+        self.create_layout()
+        self.create_grid()
+
+        self.root.mainloop()
+
+    def create_canvas(self):
+                # canvas
         self.canvas = tk.Canvas(self.root, width=self.X, height=self.Y)
         self.canvas.pack(padx=10,pady=10)
 
+    def create_layout(self):
+        self.create_canvas()
+
+        # display current generation
+        self.gen_label = tk.Label(self.root,text=f"generations: {self.gens}")
+        self.gen_label.pack()
+
+        # buttons
+        button_frame = tk.Frame(self.root)
+        button_frame.pack(pady=10)  # Add some vertical padding
+
+        # run button
+        self.button_go = tk.Button(button_frame,text='Go!',command=self.run)
+        self.button_go.pack(side=tk.LEFT,padx=5)
+
+        # stop buttom
+        self.button_stop = tk.Button(button_frame,text='Pause',command=self.pause)
+        self.button_stop.pack(side=tk.LEFT,padx=5)
+
+        # continue buttom
+        self.button_stop = tk.Button(button_frame,text='Continue',command=self.play)
+        self.button_stop.pack(side=tk.RIGHT,padx=5)
+
+    def create_grid(self):
         # store rectangle IDs and indices
         self.rectangles = {} # rectangle ids <-> coord
         self.selected = []
@@ -30,24 +67,13 @@ class GUI():
         # rectangle in canvas
         for i in range(self.ROW):
             for j in range(self.COL):
-                id = self.canvas.create_rectangle(i*X//self.COL,j*Y//self.COL,(i+1)*X//self.COL,(j+1)*Y//self.ROW, fill='white',outline='black')
+                id = self.canvas.create_rectangle(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill='white',outline='black')
                 self.rectangles[id] = (i, j) # store rectangle ids
 
         self.grid = { (a,b):rectangle_id  for rectangle_id, (a,b) in self.rectangles.items()} # coord <-> rectangle ids
 
         # event: click on rectangle to change color
         self.canvas.bind("<Button-1>", self.change_color)
-
-        # count generations
-        self.gens = 0
-        self.gen_label = tk.Label(self.root,text=f"generations: {self.gens}")
-        self.gen_label.pack()
-
-         # run button
-        self.button = tk.Button(self.root,text='Go!',command=self.run)
-        self.button.pack(pady=10)
-
-        self.root.mainloop()
 
     # changing color
     def change_color(self,event):
@@ -68,10 +94,18 @@ class GUI():
                 break
 
     def run(self):
+        self.loop = True
         self.create_lattice()
         init_population = self.get_selected()
         self.init_lattice(init_population)
 
+        self.next_gen()
+
+    def pause(self):
+        self.loop = False
+
+    def play(self):
+        self.loop = True
         self.next_gen()
 
     
@@ -94,7 +128,8 @@ class GUI():
         self.gens += 1
         self.gen_label.config(text=f"generation: {self.gens}")
 
-        self.canvas.after(200, self.next_gen)
+        if self.loop:
+            self.canvas.after(200, self.next_gen)
 
             
 
