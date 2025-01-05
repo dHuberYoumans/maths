@@ -62,7 +62,7 @@ class GUI():
     def create_grid(self):
         # store rectangle IDs and indices
         self.rectangles = {} # rectangle ids <-> coord
-        self.selected = []
+        self.live_cells = []
 
         # rectangle in canvas
         for i in range(self.ROW):
@@ -72,41 +72,45 @@ class GUI():
 
         self.grid = { (b,a):rectangle_id  for rectangle_id, (a,b) in self.rectangles.items()} # (col,row) -> rectangle ids
 
-        # event: click on rectangle to change color
+        # event: change color on click
         self.canvas.bind("<Button-1>", self.change_color)
 
-    # changing color
     def change_color(self,event):
+        # changing color on click
         for rectangle_id, (i, j) in self.rectangles.items():
             coords = self.canvas.coords(rectangle_id)
             x1, y1, x2, y2 = coords
             if x1 < event.x < x2 and y1 < event.y < y2:
-                # change color of the rectangle
+                # change color of the rectangle on click
                 current_color = self.canvas.itemcget(rectangle_id, "fill")
                 new_color = "black" if current_color == "white" else "white"
                 self.canvas.itemconfig(rectangle_id, fill=new_color)
 
-                # update selected indices
+                # update indices of live cells
                 if new_color == "black":
-                    self.selected.append((i, j)) # (col,row)
+                    self.live_cells.append((i, j)) # (col,row)
                 else:
                     try:
-                        self.selected.remove((i, j)) # (col,row)
+                        self.live_cells.remove((i, j)) # (col,row)
                     except Exception as e:
-                        print(self.selected)
-                        print(f'{e}: {(i,j)}')
+                        print(f'{e} \t {(i,j)}')
+                        self.lattice.plot()
+                        plt.show()
+                
                 break
-            
-               
-    def get_colored(self):
-        colored = []
-        for rectangle_id, (i, j) in self.rectangles.items():
-            current_color = self.canvas.itemcget(rectangle_id, "fill")
-            if current_color == "black":
-                colored.append((i,j)) 
 
-        return colored
+    def get_live_from_lattice(self):
+        try:
+            return self.lattice.get_alive()
+        except Exception:
+            print('lattice not initialised.')
         
+    def get_dead_from_lattice(self):
+        try:
+            return self.lattice.get_dead()
+        except Exception:
+            print('lattice not initialised.')
+
     def run(self):
         self.loop = True
         self.create_lattice()
@@ -117,15 +121,13 @@ class GUI():
 
     def pause(self):
         self.loop = False
-        self.selected = self.get_colored()
-
+        
     def play(self):
         self.loop = True
         curr_population = self.get_colored()
         self.lattice.clear()
         self.init_lattice(curr_population)
         self.next_gen()
-
 
     def next_gen(self):
         self.lattice.update()
@@ -147,13 +149,14 @@ class GUI():
 
         if self.loop:
             self.canvas.after(200, self.next_gen)
+        else: # if paused (self.loop = False), update live cells
+            self.live_cells = self.get_live_from_lattice() 
     
-
     def get_selected(self):
-        return self.selected
+        return self.live_cells
     
     def create_lattice(self): # init lattice
-        self.lattice = Lattice(self.ROW) # size = ROW = COL for square lattice
+        self.lattice = Lattice(self.ROW) # square lattice
 
     def init_lattice(self,population): # init config
         self.lattice.set_state(population,True)

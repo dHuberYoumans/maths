@@ -1,6 +1,7 @@
 import numpy as np
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 @dataclass
 class Cell():
@@ -39,10 +40,11 @@ class Lattice():
     def plot(self, ax = None):
         data_ = self.get_states()
         if ax is not None:
-            self.img = ax.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r',ax = ax)
+            sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r',ax = ax)# self.img = ax.imshow(data_, cmap='gray_r', interpolation='nearest') #
         else:
-            self.img = plt.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r')
+            sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r') #self.img = plt.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r')
         
+
     def clear(self):
         self.grid = np.array([[Cell() for i in range(self.size)] for j in range(self.size)])
 
