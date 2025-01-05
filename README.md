@@ -9,6 +9,7 @@ The projects highlight the (maybe not so surprising) similarities of concepts of
 - [The Projects](#the-projects)  
     * [ImgSampling](#imgsampling)
     * [MeanCurvFlow](#meancurvflow)
+    * [Conway's Game of Life](#conway-s-game-of-life)
 
 ## Getting Started 
 
@@ -101,5 +102,26 @@ cylinder.plot_normals(scale=0.3,title='normals with mesh and filled faces',mesh=
       <img align="left" float="left" src="https://github.com/dHuberYoumans/maths/blob/main/images/cylinder_normals.png" title="normals" height=300px width=auto />
 </p>
 
+## Conway's Game of Life
+This project is an implementation of the Conway's famous *Game of Life*.
+
+<p align="center">
+  <img src="https://github.com/dHuberYoumans/maths/blob/main/images/GoL_Toad.gif" alt="animated" width=500px height=auto />
+</p>
+
+The rules are simple: The earth is a flat, quadrilateralized torus---a doughnut modeled by a grid of squares with periodic boundary conditions; going out one side one enters again from the opposite side. The classic _Pac-Man_ or _Snake_ scenario.
+
+Each square represents a cell, which can be either _alive_ or _dead_. 
+The collection of squares is called a _generation_ and passing to the next generation cells can either stay alive or die (for example due to over- or under-population). But they can also be (re)born! When a cell dies or is born depends on its 8 neighbours. 
+
+There is a lot of interesting maths behind this beautifully simple game: the theory of **cellular automata**.
+
+To play around with the project, simply run ```main.py``` with Python (tested with Python v.3.11).
+It will prompt our little world as a 20x20 grid (the size can be adjusted by modifing ```main.py```).
+To generate a population, simply click on those cells which should live (_white_ means live, _black_ means death) and hit the _Play_ button. 
+If you want to pause to study or modify the current population, simply press the _Pause_ botton and again the _Play_ button to continue. 
+Finally, one can reset the world with the _Reset_ button.
+
+Have fun!
 
 
