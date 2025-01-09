@@ -3,5 +3,6 @@ from matplotlib.animation import FuncAnimation
 from gui import *
 
 if __name__ == "__main__":
-    gui = GUI(20,20)
-    gui.run()
+    gui = Square(20,20)
+    # gui = Hexagonal(10,10)
+    gui.play()
