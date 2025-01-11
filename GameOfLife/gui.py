@@ -2,6 +2,7 @@ from game_of_life import *
 from linalg import *
 import tkinter as tk
 import time
+import numpy as np
 
 
 
@@ -23,7 +24,7 @@ class GUI():
         self.root.geometry(f'{self.X+self.off}x{self.Y+self.off}')
 
         # cells
-        self.cells = {} # cell ids <-> coord
+        self.cells_by_id = {} # cell ids <-> coord
         self.live_cells = []
         
         # gens
@@ -34,7 +35,7 @@ class GUI():
 
         self.create_layout()
 
-        self.grid = None
+        self.cells_by_pos = None
 
         # self.root.mainloop()
 
@@ -97,7 +98,7 @@ class GUI():
         self.lattice.clear()
         self.live_cells = []
         self.gens = 0
-        for cell_id, (i, j) in self.cells.items():
+        for cell_id, (i, j) in self.cells_by_id.items():
             self.canvas.itemconfig(cell_id, fill="white")
         self.gen_label.config(text=f"generation: {self.gens}")
 
@@ -108,11 +109,11 @@ class GUI():
 
         # update colors
         for (a,b) in live:
-            cell_id = self.grid[(b,a)] # access via (col,row)
+            cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
             self.canvas.itemconfig(cell_id, fill='black')
 
         for (a,b) in dead:
-            cell_id = self.grid[(b,a)] # access via (col,row)
+            cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
             self.canvas.itemconfig(cell_id, fill='white')
 
         # display count of gens
@@ -154,16 +155,16 @@ class Square(GUI):
         for i in range(self.ROWS):
             for j in range(self.COLS):
                 id = self.canvas.create_rectangle(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill="white",outline="black")
-                self.cells[id] = (j, i) # rectangle ids -> (col,row)
+                self.cells_by_id[id] = (j, i) # rectangle ids -> (col,row)
 
-        self.grid = { (b,a):rectangle_id  for rectangle_id, (a,b) in self.cells.items()} # (col,row) -> rectangle ids
+        self.cells_by_pos = { (b,a):rectangle_id  for rectangle_id, (a,b) in self.cells_by_id.items()} # (col,row) -> rectangle ids
 
         # event: change color on click
         self.canvas.bind("<Button-1>", self.change_color)
 
     def change_color(self,event):
         # changing color on click
-        for cell_id, (i, j) in self.cells.items():
+        for cell_id, (i, j) in self.cells_by_id.items():
             coords = self.canvas.coords(cell_id)
             x1, y1, x2, y2 = coords
             if x1 < event.x < x2 and y1 < event.y < y2:
@@ -199,9 +200,6 @@ class Hexagonal(GUI):
         
         new_width = np.sqrt(3)*self.size*self.COLS + self.x_offset - 3
         new_height = 1.5*self.size*self.ROWS + 0.5*self.y_offset
-
-        print(f'{new_width = }')
-        print(f'{new_height = }')
         
         self.canvas.config(width=new_width, height=new_height) # resize canvas
         (f'{self.X+self.off}x{self.Y+self.off}')
@@ -223,25 +221,54 @@ class Hexagonal(GUI):
         odd_rows = np.array([ [(1,r,c) for c  in range(cols)] for r in range(rows)])
 
         # centers of hexagons
-        centers = []
+        self.centers = []
 
         for a in [even_rows,odd_rows]:
             for row in a:
                 for c in row:
-                    centers.append(self.linalghex.HECS_to_Cartesian(c.reshape(-1,1)))
+                    self.centers.append(self.linalghex.HECS_to_Cartesian(c.reshape(-1,1)))
 
         # vertices 
-        for center in centers:
+        for center in self.centers:
             vertices = self.linalghex.create_hexagon(center) # list of tuples
 
             vertices = list(sum(vertices, ())) # simple list  
 
             hex_id = self.canvas.create_polygon(*vertices,fill="white",outline="black")
-            self.canvas.move(hex_id, self.x_offset, self.y_offset) # move hexagon
-            self.cells[hex_id] = center # save hex_id to center of hexagon
+            self.canvas.move(hex_id, self.x_offset, self.y_offset)
+            self.cells_by_id[hex_id] = center 
         
-        self.grid = {(b,a): hex_id  for hex_id, (a,b) in self.cells.items()} # (col,row) -> center ids
+        self.cells_by_pos = {(a,b): hex_id  for hex_id, (a,b) in self.cells_by_id.items()} # (col,row) -> center ids
 
         # event: change color on click
         self.canvas.bind("<Button-1>", self.change_color)
       
+    def change_color(self,event):
+        # changing color on click
+        p = np.array([event.x - self.x_offset,event.y - self.y_offset])
+        
+        dmin = np.inf
+        cmin = None
+
+        for center in self.centers:
+            c = np.array(center)
+            d = np.linalg.norm(p - c) 
+            if dmin > d:
+                dmin = d 
+                cmin = center
+        
+        cell_id = self.cells_by_pos[cmin] 
+
+        current_color = self.canvas.itemcget(cell_id, "fill")
+        new_color = "black" if current_color == "white" else "white"
+        self.canvas.itemconfig(cell_id, fill=new_color)
+
+        # update indices of live cells
+        if new_color == "black":
+            self.live_cells.append(cmin) # (col,row)
+        else:
+            try:
+                self.live_cells.remove(cmin) # (col,row)
+            except Exception as e:
+                print(f'{e} \t {cmin}')        
+
