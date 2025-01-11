@@ -67,6 +67,20 @@ class GUI():
         self.button_reset = tk.Button(button_frame,text="Reset",command=self.reset)
         self.button_reset.pack(side=tk.RIGHT,padx=5)
 
+        # random initial configuration
+        self.button_reset = tk.Button(button_frame,text="Random",command=self.rnd_population)
+        self.button_reset.pack(side=tk.RIGHT,padx=5)
+
+    def rnd_population(self):
+        if not hasattr(self,"lattice"):
+            self.create_lattice(self.lattice_type)
+        
+        self.lattice.rnd_population()
+        live = self.lattice.get_alive()
+        self.live_cells = live
+        dead = self.lattice.get_dead()
+        self.paint(live,dead)
+
     def get_live_from_lattice(self):
         try:
             return self.lattice.get_alive()
@@ -90,10 +104,6 @@ class GUI():
             self.lattice.clear()
         else:
             self.create_lattice(self.lattice_type)
-        # try:
-        #     self.lattice.clear()
-        # except:
-        #     self.create_lattice(self.lattice_type)
 
         self.init_lattice(curr_population)
         self.next_gen()

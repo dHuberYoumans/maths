@@ -85,7 +85,12 @@ class SqLattice():
         for cell in self.grid[*reborn]:
             cell.set(True)
 
-        
+    def rnd_population(self):
+        p = np.random.uniform(0,1,size=self.grid.shape)
+
+        for cell in self.grid[*np.where(p > 0.5)]:
+            cell.set(True)
+
 class HexLattice():
     def __init__(self,rows,cols):
         self.ROWS = rows
@@ -140,7 +145,7 @@ class HexLattice():
                 nbr_state += current_states[nbr]
 
             # live cells
-            if current_cell_state.get() and nbr_state == 3: # live
+            if current_cell_state.get() and (nbr_state == 3 | nbr_state == 4): # live
                 continue
             if current_cell_state.get() and nbr_state < 3: # die, underpopulation
                 current_cell_state.set(False)
@@ -148,99 +153,12 @@ class HexLattice():
                 current_cell_state.set(False)
 
             # dead cells
-            if not current_cell_state.get() and nbr_state == 3: # live
+            if not current_cell_state.get() and nbr_state == 4: # live
                 current_cell_state.set(True)
 
-
-# class Lattice():
-#     def __init__(self,size: int, type:str):
-#         self.size = size
-#         self.grid = np.array([[Cell() for i in range(self.size)] for j in range(self.size)])
-
-#     def set_state(self, idx: list[tuple[int,int]], state: bool):
-#         row_idx = [row for row, _ in idx]
-#         col_idx = [col for _, col in idx]
-
-#         for cell in self.grid[row_idx,col_idx]:
-#             cell.set(state)
-
-#     def get_states(self, grid = None):
-#         if grid is not None:
-#             return np.array([[cell.get() for cell in row] for row in grid])
-#         else:
-#             return np.array([[cell.get() for cell in row] for row in self.grid])
-        
-#     def get_alive(self):
-#         return list(zip(*np.where(self.get_states() == True)))
-    
-#     def get_dead(self):
-#         return list(zip(*np.where(self.get_states() == False)))
-    
-#     def plot(self, ax = None):
-#         data_ = self.get_states()
-#         if ax is not None:
-#             sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r',ax = ax)# self.img = ax.imshow(data_, cmap='gray_r', interpolation='nearest') #
-#         else:
-#             sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r') #self.img = plt.imshow(data_, cmap='gray_r', interpolation='nearest') #sns.heatmap(data_,cbar=False,linewidths=0.1,xticklabels=False,yticklabels=False,cmap='rocket_r')
-        
-
-#     def clear(self):
-#         self.grid = np.array([[Cell() for i in range(self.size)] for j in range(self.size)])
-
-#     def update(self):
-#         live_or_die = np.zeros_like(self.grid)
-#         for dir in [-1,1]:
-#             for ax in [0,1]:
-#                 # direct nbrs: bottom, right, up, left
-#                 live_or_die +=  self.get_states(np.roll(self.grid,dir,axis=ax)).astype(int)
-#             for ddir in [-1,1]:
-#                 # diagonal nbrs: bottom right, upper right, bottom left, upper left
-#                 live_or_die += self.get_states(np.roll(np.roll(self.grid,dir,axis=1),ddir,axis=0)).astype(int) 
-
-#         ''' 
-#         EXPLICIT VERSION:
-
-#         # # bottom
-#         # bottom = self.get_states(np.roll(self.grid,-1,axis=0)).astype(int)
-#         # # up
-#         # up = self.get_states(np.roll(self.grid,1,axis=0)).astype(int)
-#         # # right
-#         # right = self.get_states(np.roll(self.grid,-1,axis=1)).astype(int)
-#         # # left 
-#         # left = self.get_states(np.roll(self.grid,1,axis=1)).astype(int)
-#         # # upper right
-#         # upper_right = self.get_states(np.roll(np.roll(self.grid,-1,axis=1),1,axis=0)).astype(int)
-#         # # upper left
-#         # upper_left = self.get_states(np.roll(np.roll(self.grid,1,axis=1),1,axis=0)).astype(int)
-#         # # bottom right
-#         # bottom_right = self.get_states(np.roll(np.roll(self.grid,-1,axis=1),-1,axis=0)).astype(int)
-#         # # bottom left
-#         # bottom_left = self.get_states(np.roll(np.roll(self.grid,1,axis=1),-1,axis=0)).astype(int)
-
-#         # live_or_die = bottom + up + right + left + upper_left + upper_right + bottom_left + bottom_right # number of live nbrs
-#         '''
-
-
-#         # update according to Conway's Game of Life
-#         # conditions for live cells
-#         underpopulation = np.where( (live_or_die < 2) & (self.get_states() == True) ) # dies
-#         overpopulation = np.where( (live_or_die > 3) & (self.get_states() == True) ) # dies
-#         stable = np.where( ( (live_or_die == 2) | (live_or_die == 3) ) & (self.get_states() == True) ) # lives
-
-#         # conditions for dead cells
-#         reborn = np.where((live_or_die == 3) & (self.get_states() == False)) # lives
-
-#         # update
-#         for cell in self.grid[*underpopulation]:
-#             cell.set(False)
-
-#         for cell in self.grid[*overpopulation]:
-#             cell.set(False)
-
-#         for cell in self.grid[*stable]:
-#             cell.set(True)
-
-#         for cell in self.grid[*reborn]:
-#             cell.set(True)
-
+    def rnd_population(self):
+        for cell_id in self.grid:
+            p = np.random.uniform(0,1)
+            if p > 0.5:
+                self.grid[cell_id].set(True)
         
