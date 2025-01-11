@@ -86,10 +86,14 @@ class GUI():
         self.loop = True
         curr_population = self.get_live_cells()
 
-        try:
+        if hasattr(self,"lattice"):
             self.lattice.clear()
-        except:
+        else:
             self.create_lattice(self.lattice_type)
+        # try:
+        #     self.lattice.clear()
+        # except:
+        #     self.create_lattice(self.lattice_type)
 
         self.init_lattice(curr_population)
         self.next_gen()
@@ -102,19 +106,16 @@ class GUI():
             self.canvas.itemconfig(cell_id, fill="white")
         self.gen_label.config(text=f"generation: {self.gens}")
 
+    def paint(self):
+        pass
+
     def next_gen(self):
         self.lattice.update()
         live = self.lattice.get_alive()
         dead = self.lattice.get_dead()
 
         # update colors
-        for (a,b) in live:
-            cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
-            self.canvas.itemconfig(cell_id, fill='black')
-
-        for (a,b) in dead:
-            cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
-            self.canvas.itemconfig(cell_id, fill='white')
+        self.paint(live,dead)
 
         # display count of gens
         self.gens += 1
@@ -122,7 +123,7 @@ class GUI():
 
         if self.loop:
             self.canvas.after(200, self.next_gen)
-        else: # if paused (self.loop = False), update live cells
+        else: # if paused, update live cells
             self.live_cells = self.get_live_from_lattice() 
     
     def get_live_cells(self):
@@ -131,11 +132,11 @@ class GUI():
     def create_lattice(self,lattice_type: str): # init lattice
         if lattice_type == "square":
             self.lattice = SqLattice((self.ROWS,self.COLS)) # square lattice
-        # if lattice_type == "hexagonal":
-        #     self.lattice = HexLattice(self.ROWS) # shexagonalquare lattice
+        if lattice_type == "hexagonal":
+            self.lattice = HexLattice(self.ROWS//2,self.COLS) # shexagonalquare lattice
 
     def init_lattice(self,population): # init config
-        self.lattice.set_state(population,True)
+        self.lattice.set_states(population,True)
 
 
 class Square(GUI):
@@ -185,6 +186,15 @@ class Square(GUI):
                         plt.show()        
                 break
 
+    def paint(self,live,dead):
+        for (a,b) in live:
+            cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
+            self.canvas.itemconfig(cell_id, fill='black')
+
+        for (a,b) in dead:
+            cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
+            self.canvas.itemconfig(cell_id, fill='white')
+
 
 class Hexagonal(GUI):
     def __init__(self, row, col, X = 400, Y = 300, off = 120):
@@ -209,27 +219,27 @@ class Hexagonal(GUI):
         self.create_grid()
 
         self.root.mainloop()
-
-    
+ 
     def create_grid(self):
         # construct hex grid!
         rows = self.ROWS//2
-        cols = self.COLS #int(self.X//(np.sqrt(3)*self.size)) # width single hexagon: sqrt(3)*size
+        cols = self.COLS 
 
         # HECS
-        even_rows = np.array([ [(0,r,c) for c  in range(cols)] for r in range(rows)])
-        odd_rows = np.array([ [(1,r,c) for c  in range(cols)] for r in range(rows)])
+        even_rows = [ [(0,r,c) for c in range(cols)] for r in range(rows)]
+        odd_rows = [ [(1,r,c) for c in range(cols)] for r in range(rows)]
 
         # centers of hexagons
-        self.centers = []
+        self.centers_HECS = {}
 
-        for a in [even_rows,odd_rows]:
-            for row in a:
-                for c in row:
-                    self.centers.append(self.linalghex.HECS_to_Cartesian(c.reshape(-1,1)))
+        for idx in even_rows + odd_rows:
+            for (a,r,c) in idx:
+                self.centers_HECS.update({(a,r,c):self.linalghex.HECS_to_Cartesian(np.array([a,r,c]).reshape(-1,1))})
+
+        self.centers_by_pos = {tuple(center):hecs for hecs, center in self.centers_HECS.items()}
 
         # vertices 
-        for center in self.centers:
+        for center in self.centers_HECS.values():
             vertices = self.linalghex.create_hexagon(center) # list of tuples
 
             vertices = list(sum(vertices, ())) # simple list  
@@ -238,7 +248,9 @@ class Hexagonal(GUI):
             self.canvas.move(hex_id, self.x_offset, self.y_offset)
             self.cells_by_id[hex_id] = center 
         
-        self.cells_by_pos = {(a,b): hex_id  for hex_id, (a,b) in self.cells_by_id.items()} # (col,row) -> center ids
+        self.cells_by_pos = {(a,b):hex_id  for hex_id, (a,b) in self.cells_by_id.items()} # (col,row) -> center ids
+
+        self.cells_id_by_HECS = { self.centers_by_pos[(a,b)]: hex_id for hex_id, (a,b) in self.cells_by_id.items() }
 
         # event: change color on click
         self.canvas.bind("<Button-1>", self.change_color)
@@ -250,7 +262,7 @@ class Hexagonal(GUI):
         dmin = np.inf
         cmin = None
 
-        for center in self.centers:
+        for center in self.centers_HECS.values():
             c = np.array(center)
             d = np.linalg.norm(p - c) 
             if dmin > d:
@@ -265,10 +277,18 @@ class Hexagonal(GUI):
 
         # update indices of live cells
         if new_color == "black":
-            self.live_cells.append(cmin) # (col,row)
+            self.live_cells.append(self.centers_by_pos[cmin]) # (col,row)
         else:
             try:
-                self.live_cells.remove(cmin) # (col,row)
+                self.live_cells.remove(self.centers_by_pos[cmin]) # (col,row)
             except Exception as e:
-                print(f'{e} \t {cmin}')        
+                print(f'{e}')   
 
+    def paint(self,live,dead):
+        for (a,r,c) in live:
+            cell_id = self.cells_id_by_HECS[(a,r,c)] # live
+            self.canvas.itemconfig(cell_id, fill="black")
+
+        for (a,r,c) in dead:
+            cell_id = self.cells_id_by_HECS[(a,r,c)] # dead
+            self.canvas.itemconfig(cell_id, fill="white")

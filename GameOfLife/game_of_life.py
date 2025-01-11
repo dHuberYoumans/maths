@@ -23,7 +23,7 @@ class SqLattice():
     def create_grid(self):
         return np.array([[Cell() for _ in range(self.COLS)] for _ in range(self.ROWS)])
 
-    def set_state(self, idx: list[tuple[int,int]], state: bool):
+    def set_states(self, idx: list[tuple[int,int]], state: bool):
         row_idx = [row for row, _ in idx]
         col_idx = [col for _, col in idx]
 
@@ -106,10 +106,10 @@ class HexLattice():
             self.grid[(a,b,c)].set(state)
 
     def get_alive(self):
-        return [idx for idx in hex.grid.keys() if hex.grid[idx].get()]
+        return [idx for idx in self.grid.keys() if self.grid[idx].get()]
     
     def get_dead(self):
-        return [idx for idx in hex.grid.keys() if not hex.grid[idx].get()]
+        return [idx for idx in self.grid.keys() if not self.grid[idx].get()]
     
     def get_states(self):
         return np.array([[[self.grid[(a,r,c)].get() for c in range(self.COLS)] for r in range(self.ROWS)]for a in range(2)])
@@ -150,10 +150,6 @@ class HexLattice():
             # dead cells
             if not current_cell_state.get() and nbr_state == 3: # live
                 current_cell_state.set(True)
-
-    
-        
-
 
 
 # class Lattice():
