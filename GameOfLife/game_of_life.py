@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import seaborn as sns
 from linalg import *
+from scipy.signal import convolve2d
 
 
 @dataclass
@@ -19,6 +20,7 @@ class SqLattice():
     def __init__(self, size: tuple[int,int]):
         self.ROWS, self.COLS = size
         self.grid = self.create_grid()
+        self.nbrhd_kernel = np.array([[1.,1.,1.],[1.,0.,1.],[1.,1.,1.]])
 
     def create_grid(self):
         return np.array([[Cell() for _ in range(self.COLS)] for _ in range(self.ROWS)])
@@ -53,24 +55,16 @@ class SqLattice():
         self.grid = self.create_grid()
 
     def update(self):
-        bottom = self.get_states(np.roll(self.grid,-1,axis=0)).astype(int)
-        up = self.get_states(np.roll(self.grid,1,axis=0)).astype(int)
-        right = self.get_states(np.roll(self.grid,-1,axis=1)).astype(int) 
-        left = self.get_states(np.roll(self.grid,1,axis=1)).astype(int)
-        upper_right = self.get_states(np.roll(np.roll(self.grid,-1,axis=1),1,axis=0)).astype(int)
-        upper_left = self.get_states(np.roll(np.roll(self.grid,1,axis=1),1,axis=0)).astype(int)
-        bottom_right = self.get_states(np.roll(np.roll(self.grid,-1,axis=1),-1,axis=0)).astype(int)
-        bottom_left = self.get_states(np.roll(np.roll(self.grid,1,axis=1),-1,axis=0)).astype(int)
+        current = self.get_states().astype(int)
+        live_nbrs = convolve2d(current,self.nbrhd_kernel,mode="same",boundary="wrap")
 
-        live_or_die = bottom + up + right + left + upper_left + upper_right + bottom_left + bottom_right 
-      
         # rules live cells
-        underpopulation = np.where( (live_or_die < 2) & (self.get_states() == True) ) # dies
-        overpopulation = np.where( (live_or_die > 3) & (self.get_states() == True) ) # dies
-        stable = np.where( ( (live_or_die == 2) | (live_or_die == 3) ) & (self.get_states() == True) ) # survives
+        underpopulation = np.where( (live_nbrs < 2) & (self.get_states() == True) ) # dies
+        overpopulation = np.where( (live_nbrs > 3) & (self.get_states() == True) ) # dies
+        stable = np.where( ( (live_nbrs == 2) | (live_nbrs == 3) ) & (self.get_states() == True) ) # survives
 
         # rules dead cells
-        reborn = np.where((live_or_die == 3) & (self.get_states() == False)) # reborn
+        reborn = np.where((live_nbrs == 3) & (self.get_states() == False)) # reborn
 
         # update
         for cell in self.grid[*underpopulation]:
