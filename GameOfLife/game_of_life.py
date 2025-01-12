@@ -64,13 +64,13 @@ class SqLattice():
 
         live_or_die = bottom + up + right + left + upper_left + upper_right + bottom_left + bottom_right 
       
-        # conditions for live cells
+        # rules live cells
         underpopulation = np.where( (live_or_die < 2) & (self.get_states() == True) ) # dies
         overpopulation = np.where( (live_or_die > 3) & (self.get_states() == True) ) # dies
-        stable = np.where( ( (live_or_die == 2) | (live_or_die == 3) ) & (self.get_states() == True) ) # lives
+        stable = np.where( ( (live_or_die == 2) | (live_or_die == 3) ) & (self.get_states() == True) ) # survives
 
-        # conditions for dead cells
-        reborn = np.where((live_or_die == 3) & (self.get_states() == False)) # lives
+        # rules dead cells
+        reborn = np.where((live_or_die == 3) & (self.get_states() == False)) # reborn
 
         # update
         for cell in self.grid[*underpopulation]:
@@ -136,29 +136,28 @@ class HexLattice():
 
     def update(self):
         current_states = self.get_states()
+        tmp = self.grid.copy()
 
         for id in self.grid.keys():
             current_cell_state = self.grid[id]
             nbr_state = 0
             nbrs = self.get_neighbours(id)
+
             for nbr in nbrs:
-                nbr_state += current_states[nbr]
+                nbr_state += current_states[*nbr]
 
-            # live cells
-            if current_cell_state.get() and (nbr_state == 3 | nbr_state == 4): # live
+            if current_cell_state.get() and (nbr_state == 3 or nbr_state == 4): # survive
                 continue
-            if current_cell_state.get() and nbr_state < 3: # die, underpopulation
-                current_cell_state.set(False)
-            if current_cell_state.get() and nbr_state > 3: # die, overpopulation
-                current_cell_state.set(False)
+            elif not current_cell_state.get() and nbr_state == 2: # reborn
+                tmp[id].set(True)
+            else:
+                tmp[id].set(False) # die
 
-            # dead cells
-            if not current_cell_state.get() and nbr_state == 4: # live
-                current_cell_state.set(True)
+        self.grid = tmp
 
     def rnd_population(self):
         for cell_id in self.grid:
             p = np.random.uniform(0,1)
-            if p > 0.5:
+            if p < 0.33:
                 self.grid[cell_id].set(True)
         
