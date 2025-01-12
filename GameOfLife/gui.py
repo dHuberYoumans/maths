@@ -8,6 +8,15 @@ import numpy as np
 
 class GUI():
     def __init__(self, rows: int, cols: int, X: int = 400, Y: int = 300, off: int = 120):
+        # colors
+        self.C_LIVE = "gold"
+        self.C_DEAD = "black"
+        self.C_CELL_OUTLINE = "dodger blue"
+        self.C_CANVAS_BG = "gray25"
+
+        # update frequency
+        self.update_freq = 100 # ms
+        
         # lattice type
         self.lattice_type = None
 
@@ -37,11 +46,8 @@ class GUI():
 
         self.cells_by_pos = None
 
-        # self.root.mainloop()
-
     def create_canvas(self):
-        # canvas
-        self.canvas = tk.Canvas(self.root, width=self.X, height=self.Y, bg="green")
+        self.canvas = tk.Canvas(self.root, width=self.X, height=self.Y, bg=self.C_CANVAS_BG)
         self.canvas.pack(padx=10,pady=10)
 
     def create_layout(self):
@@ -63,23 +69,18 @@ class GUI():
         self.button_stop = tk.Button(button_frame,text="Pause",command=self.pause)
         self.button_stop.pack(side=tk.LEFT,padx=5)
 
+        # next generation
+        self.button_reset = tk.Button(button_frame,text="Next",command=self.next)
+        self.button_reset.pack(side=tk.LEFT,padx=5)
+
+        # random initial configuration
+        self.button_reset = tk.Button(button_frame,text="Random",command=self.random)
+        self.button_reset.pack(side=tk.LEFT,padx=5)
+
         # reset button
         self.button_reset = tk.Button(button_frame,text="Reset",command=self.reset)
         self.button_reset.pack(side=tk.RIGHT,padx=5)
 
-        # random initial configuration
-        self.button_reset = tk.Button(button_frame,text="Random",command=self.rnd_population)
-        self.button_reset.pack(side=tk.RIGHT,padx=5)
-
-    def rnd_population(self):
-        if not hasattr(self,"lattice"):
-            self.create_lattice(self.lattice_type)
-        
-        self.lattice.rnd_population()
-        live = self.lattice.get_alive()
-        self.live_cells = live
-        dead = self.lattice.get_dead()
-        self.paint(live,dead)
 
     def get_live_from_lattice(self):
         try:
@@ -92,9 +93,6 @@ class GUI():
             return self.lattice.get_dead()
         except Exception:
             print('lattice not initialised.')
-
-    def pause(self):
-        self.loop = False
         
     def play(self):
         self.loop = True
@@ -106,14 +104,40 @@ class GUI():
             self.create_lattice(self.lattice_type)
 
         self.init_lattice(curr_population)
+        self.run()
+    
+    def pause(self):
+        self.loop = False
+
+    def next(self):
+        curr_population = self.get_live_cells()
+
+        if hasattr(self,"lattice"):
+            self.lattice.clear()
+        else:
+            self.create_lattice(self.lattice_type)
+
+        self.init_lattice(curr_population)
         self.next_gen()
+        self.live_cells = self.get_live_from_lattice()
+
+
+    def random(self):
+        if not hasattr(self,"lattice"):
+            self.create_lattice(self.lattice_type)
+        
+        self.lattice.rnd_population()
+        live = self.lattice.get_alive()
+        self.live_cells = live
+        dead = self.lattice.get_dead()
+        self.paint(live,dead)
     
     def reset(self):
         self.lattice.clear()
         self.live_cells = []
         self.gens = 0
         for cell_id, (i, j) in self.cells_by_id.items():
-            self.canvas.itemconfig(cell_id, fill="white")
+            self.canvas.itemconfig(cell_id, fill=self.C_DEAD)
         self.gen_label.config(text=f"generation: {self.gens}")
 
     def paint(self):
@@ -131,8 +155,10 @@ class GUI():
         self.gens += 1
         self.gen_label.config(text=f"generation: {self.gens}")
 
+    def run(self):
+        self.next_gen()
         if self.loop:
-            self.canvas.after(200, self.next_gen)
+            self.canvas.after(self.update_freq, self.run)
         else: # if paused, update live cells
             self.live_cells = self.get_live_from_lattice() 
     
@@ -165,7 +191,7 @@ class Square(GUI):
         # rectangle in canvas
         for i in range(self.ROWS):
             for j in range(self.COLS):
-                id = self.canvas.create_rectangle(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill="white",outline="black")
+                id = self.canvas.create_rectangle(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill=self.C_DEAD,outline=self.C_CELL_OUTLINE)
                 self.cells_by_id[id] = (j, i) # rectangle ids -> (col,row)
 
         self.cells_by_pos = { (b,a):rectangle_id  for rectangle_id, (a,b) in self.cells_by_id.items()} # (col,row) -> rectangle ids
@@ -181,11 +207,11 @@ class Square(GUI):
             if x1 < event.x < x2 and y1 < event.y < y2:
                 # change color of the cell on click
                 current_color = self.canvas.itemcget(cell_id, "fill")
-                new_color = "black" if current_color == "white" else "white"
+                new_color = self.C_LIVE if current_color == self.C_DEAD else self.C_DEAD
                 self.canvas.itemconfig(cell_id, fill=new_color)
 
                 # update indices of live cells
-                if new_color == "black":
+                if new_color == self.C_LIVE:
                     self.live_cells.append((i, j)) # (col,row)
                 else:
                     try:
@@ -254,7 +280,7 @@ class Hexagonal(GUI):
 
             vertices = list(sum(vertices, ())) # simple list  
 
-            hex_id = self.canvas.create_polygon(*vertices,fill="white",outline="black")
+            hex_id = self.canvas.create_polygon(*vertices,fill=self.C_DEAD,outline=self.C_CELL_OUTLINE)
             self.canvas.move(hex_id, self.x_offset, self.y_offset)
             self.cells_by_id[hex_id] = center 
         
@@ -282,11 +308,11 @@ class Hexagonal(GUI):
         cell_id = self.cells_by_pos[cmin] 
 
         current_color = self.canvas.itemcget(cell_id, "fill")
-        new_color = "black" if current_color == "white" else "white"
+        new_color = self.C_LIVE if current_color == self.C_DEAD else self.C_DEAD
         self.canvas.itemconfig(cell_id, fill=new_color)
 
         # update indices of live cells
-        if new_color == "black":
+        if new_color == self.C_LIVE:
             self.live_cells.append(self.centers_by_pos[cmin]) # (col,row)
         else:
             try:
@@ -297,8 +323,8 @@ class Hexagonal(GUI):
     def paint(self,live,dead):
         for (a,r,c) in live:
             cell_id = self.cells_id_by_HECS[(a,r,c)] # live
-            self.canvas.itemconfig(cell_id, fill="black")
+            self.canvas.itemconfig(cell_id, fill=self.C_LIVE)
 
         for (a,r,c) in dead:
             cell_id = self.cells_id_by_HECS[(a,r,c)] # dead
-            self.canvas.itemconfig(cell_id, fill="white")
+            self.canvas.itemconfig(cell_id, fill=self.C_DEAD)
