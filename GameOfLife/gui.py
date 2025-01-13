@@ -81,7 +81,6 @@ class GUI():
         self.button_reset = tk.Button(button_frame,text="Reset",command=self.reset)
         self.button_reset.pack(side=tk.RIGHT,padx=5)
 
-
     def get_live_from_lattice(self):
         try:
             return self.lattice.get_alive()
@@ -225,11 +224,11 @@ class Square(GUI):
     def paint(self,live,dead):
         for (a,b) in live:
             cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
-            self.canvas.itemconfig(cell_id, fill='black')
+            self.canvas.itemconfig(cell_id, fill=self.C_LIVE)
 
         for (a,b) in dead:
             cell_id = self.cells_by_pos[(b,a)] # access via (col,row)
-            self.canvas.itemconfig(cell_id, fill='white')
+            self.canvas.itemconfig(cell_id, fill=self.C_DEAD)
 
 
 class Hexagonal(GUI):
@@ -250,7 +249,6 @@ class Hexagonal(GUI):
         self.canvas.config(width=new_width, height=new_height) # resize canvas
         (f'{self.X+self.off}x{self.Y+self.off}')
         self.root.geometry(f"{int(new_width)+self.off}x{int(new_height)+self.off}") # resize window
-
 
         self.create_grid()
 
@@ -290,6 +288,11 @@ class Hexagonal(GUI):
 
         # event: change color on click
         self.canvas.bind("<Button-1>", self.change_color)
+
+        # FOR DEBUGGING / ORIENTATION
+        # for idx in self.centers_HECS.keys():
+        #     x,y = self.centers_HECS[idx]
+        #     tk.Label(text=f"{idx}", bg=self.C_DEAD, font=("Ariel", 10, "italic"), fg="white").place(x=x+2.2*self.x_offset, y=y+self.y_offset)
       
     def change_color(self,event):
         # changing color on click
