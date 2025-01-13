@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import seaborn as sns
 from linalg import *
 from scipy.signal import convolve2d
+import yaml
 
 
 @dataclass
@@ -19,7 +20,15 @@ class SqLattice():
     def __init__(self, size: tuple[int,int]):
         self.ROWS, self.COLS = size
         self.grid = self.create_grid()
+
+        # conv kernel for update
         self.nbrhd_kernel = np.array([[1.,1.,1.],[1.,0.,1.],[1.,1.,1.]])
+
+        # rules
+        with open('config.yml', 'r') as file:
+            config = yaml.safe_load(file)
+
+        self.rule = config["sq_rules"]
 
     def create_grid(self):
         return np.array([[Cell() for _ in range(self.COLS)] for _ in range(self.ROWS)])
@@ -57,11 +66,12 @@ class SqLattice():
         current = self.get_states().astype(int)
         live_nbrs = convolve2d(current,self.nbrhd_kernel,mode="same",boundary="wrap")
 
-        # rules
-        surviving = ( (live_nbrs == 2) | (live_nbrs == 3) ) & (self.get_states() == True)
-        stable = np.where( surviving ) # survives
-        not_stable = np.where( ~surviving )
-        birth = np.where((live_nbrs == 3) & (self.get_states() == False)) # birth
+        survival = np.isin(live_nbrs,self.rule["survival"]) & self.get_states()
+        birth = np.isin(live_nbrs, self.rule["birth"]) & ~self.get_states()
+        
+        stable = np.where( survival ) # life
+        not_stable = np.where( ~survival ) # death
+        born = np.where(birth) # birth
 
         # update
         for cell in self.grid[not_stable]:
@@ -70,11 +80,11 @@ class SqLattice():
         for cell in self.grid[stable]:
             cell.set(True)
 
-        for cell in self.grid[birth]:
+        for cell in self.grid[born]:
             cell.set(True)
 
     def rnd_population(self):
-        p = np.random.rand(self.grid.shape) < 0.33
+        p = np.random.rand(*self.grid.shape) < 0.33
         for r in range(self.ROWS):
                 for c in range(self.COLS):
                     self.grid[r, c].set(p[r, c])
@@ -90,6 +100,13 @@ class HexLattice():
             [(0, 0, -1), (-1, 1, 0), (-1, 1, 1), (0, 0, 1), (-1, 0, 1), (-1, 0, 0)],    # even rows 
             [(0, 0, -1), (-1, 0, -1), (-1, 0,0), (0, 0, 1), (-1, -1, 0), (-1, -1, -1)]  # odd rows
         ]
+
+        # rules
+        with open('config.yml', 'r') as file:
+            config = yaml.safe_load(file)
+
+        self.rule = config["hex_rules"]
+
 
     def create_grid(self):
         # HECS
@@ -137,20 +154,21 @@ class HexLattice():
             for shift in self.shifts[a]:
                 live_nbrs[a] += np.roll(current, shift=shift, axis=(0,1,2))[a]
 
-        # rules
-        surviving =  ( (live_nbrs == 3) | (live_nbrs == 4) ) & self.get_states()
-        stable = np.where(surviving) # survive
-        not_stable = np.where(~surviving) # die
-        birth = np.where( (live_nbrs == 2) & (~self.get_states()) ) # birth
+        survival = np.isin(live_nbrs,self.rule["survival"]) & self.get_states()
+        birth = np.isin(live_nbrs, self.rule["birth"]) & ~self.get_states()
+        
+        stable = np.where( survival ) # life
+        not_stable = np.where( ~survival ) # death
+        born = np.where(birth) # birth
 
         # update
-        for cell in self.grid[*not_stable]:
+        for cell in self.grid[not_stable]:
             cell.set(False)
         
-        for cell in self.grid[*stable]:
+        for cell in self.grid[stable]:
             cell.set(True)
 
-        for cell in self.grid[*birth]:
+        for cell in self.grid[born]:
             cell.set(True)
 
     # def update(self):

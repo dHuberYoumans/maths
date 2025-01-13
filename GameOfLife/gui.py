@@ -1,18 +1,29 @@
 from game_of_life import *
 from linalg import *
 import tkinter as tk
-import time
 import numpy as np
+import yaml
 
 
 
 class GUI():
-    def __init__(self, rows: int, cols: int, X: int = 400, Y: int = 300, off: int = 120):
+    def __init__(self, rows: int, cols: int, off: int = 120):
+        with open('config.yml', 'r') as file:
+            config = yaml.safe_load(file)
+
+        # layout 
+        self.X =config["layout"]["geometry"]["WIDTH"]
+        self.Y = config["layout"]["geometry"]["HEIGHT"]
+        self.off = off
+        self.root = tk.Tk()
+        self.root.title("Conway's Game of Life")
+        self.root.geometry(f'{self.X+self.off}x{self.Y+self.off}')
+
         # colors
-        self.C_LIVE = "gold"
-        self.C_DEAD = "black"
-        self.C_CELL_OUTLINE = "dodger blue"
-        self.C_CANVAS_BG = "gray25"
+        self.C_LIVE = config["layout"]["colors"]["LIVE"]
+        self.C_DEAD = config["layout"]["colors"]["DEAD"]
+        self.C_CELL_OUTLINE = config["layout"]["colors"]["CELL_OUTLINE"]
+        self.C_CANVAS_BG = config["layout"]["colors"]["CANVAS_BG"]
 
         # update frequency
         self.update_freq = 100 # ms
@@ -23,14 +34,6 @@ class GUI():
         # grid size
         self.ROWS = rows
         self.COLS = cols
-        
-        # window 
-        self.X = X
-        self.Y = Y
-        self.off = off
-        self.root = tk.Tk()
-        self.root.title("Conway's Game of Life")
-        self.root.geometry(f'{self.X+self.off}x{self.Y+self.off}')
 
         # cells
         self.cells_by_id = {} # cell ids <-> coord
@@ -175,11 +178,11 @@ class GUI():
 
 
 class Square(GUI):
-    def __init__(self, row, col, X = 400, Y = 300, off = 120):
-        super().__init__(row, col, X, Y, off)
+    def __init__(self, row, col, off = 120):
+        super().__init__(row, col, off)
         self.lattice_type = "square"
-        self.cell_width = X//self.COLS
-        self.cell_height = Y//self.ROWS
+        self.cell_width = self.X//self.COLS
+        self.cell_height = self.Y//self.ROWS
 
         self.create_grid()
 
@@ -232,8 +235,8 @@ class Square(GUI):
 
 
 class Hexagonal(GUI):
-    def __init__(self, row, col, X = 400, Y = 300, off = 120):
-        super().__init__(row, col, X, Y, off)
+    def __init__(self, row, col, off = 120):
+        super().__init__(row, col, off)
 
         self.lattice_type = "hexagonal"
 
