@@ -1,0 +1,17 @@
+layout:
+  geometry:
+    "WIDTH": 500
+    "HEIGHT": 500
+  colors:
+    "LIVE": "gold"
+    "DEAD": "black"
+    "CELL_OUTLINE": "dodger blue"
+    "CANVAS_BG": "gray25"
+
+sq_rules:
+  "survival": [2,3]
+  "birth": [3]
+
+hex_rules:
+  "survival": [3,4]
+  "birth": [2]
