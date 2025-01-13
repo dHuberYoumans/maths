@@ -1,6 +1,5 @@
 import numpy as np
 from dataclasses import dataclass
-import matplotlib.pyplot as plt
 import seaborn as sns
 from linalg import *
 from scipy.signal import convolve2d
@@ -58,60 +57,62 @@ class SqLattice():
         current = self.get_states().astype(int)
         live_nbrs = convolve2d(current,self.nbrhd_kernel,mode="same",boundary="wrap")
 
-        # rules live cells
-        underpopulation = np.where( (live_nbrs < 2) & (self.get_states() == True) ) # dies
-        overpopulation = np.where( (live_nbrs > 3) & (self.get_states() == True) ) # dies
-        stable = np.where( ( (live_nbrs == 2) | (live_nbrs == 3) ) & (self.get_states() == True) ) # survives
-
-        # rules dead cells
-        reborn = np.where((live_nbrs == 3) & (self.get_states() == False)) # reborn
+        # rules
+        surviving = ( (live_nbrs == 2) | (live_nbrs == 3) ) & (self.get_states() == True)
+        stable = np.where( surviving ) # survives
+        not_stable = np.where( ~surviving )
+        birth = np.where((live_nbrs == 3) & (self.get_states() == False)) # birth
 
         # update
-        for cell in self.grid[*underpopulation]:
+        for cell in self.grid[not_stable]:
             cell.set(False)
 
-        for cell in self.grid[*overpopulation]:
-            cell.set(False)
-
-        for cell in self.grid[*stable]:
+        for cell in self.grid[stable]:
             cell.set(True)
 
-        for cell in self.grid[*reborn]:
+        for cell in self.grid[birth]:
             cell.set(True)
 
     def rnd_population(self):
-        p = np.random.uniform(0,1,size=self.grid.shape)
-
-        for cell in self.grid[*np.where(p > 0.5)]:
-            cell.set(True)
+        p = np.random.rand(self.grid.shape) < 0.33
+        for r in range(self.ROWS):
+                for c in range(self.COLS):
+                    self.grid[r, c].set(p[r, c])
 
 class HexLattice():
     def __init__(self,rows,cols):
         self.ROWS = rows
         self.COLS = cols
         self.grid = self.create_grid()
-        pass
+
+        # for efficient update 
+        self.shifts = [
+            [(0, 0, -1), (-1, 1, 0), (-1, 1, 1), (0, 0, 1), (-1, 0, 1), (-1, 0, 0)],    # even rows 
+            [(0, 0, -1), (-1, 0, -1), (-1, 0,0), (0, 0, 1), (-1, -1, 0), (-1, -1, -1)]  # odd rows
+        ]
 
     def create_grid(self):
         # HECS
-        self.even_rows = [ [(0,r,c) for c  in range(self.COLS)] for r in range(self.ROWS)]
-        self.odd_rows = [ [(1,r,c) for c  in range(self.COLS)] for r in range(self.ROWS)]
-        grid = {(a,b,c):Cell() for row in self.even_rows + self.odd_rows for (a,b,c) in row}
+        grid = np.array( [[[Cell() for c  in range(self.COLS)] for r in range(self.ROWS)] for a in range(2)] )
 
         return grid
     
     def set_states(self, idx: list[tuple[int,int,int]], state: bool):
-        for (a,b,c) in idx:
-            self.grid[(a,b,c)].set(state)
+        for a,b,c in idx:
+            self.grid[a,b,c].set(state)
 
     def get_alive(self):
-        return [idx for idx in self.grid.keys() if self.grid[idx].get()]
+        current = self.get_states()
+        live = list(zip(*np.where(current)))
+        return live #[idx for idx in self.grid.keys() if self.grid[idx].get()]
     
     def get_dead(self):
-        return [idx for idx in self.grid.keys() if not self.grid[idx].get()]
+        current = self.get_states()
+        dead = list(zip(*np.where(~current)))
+        return dead #[idx for idx in self.grid.keys() if not self.grid[idx].get()]
     
     def get_states(self):
-        return np.array([[[self.grid[(a,r,c)].get() for c in range(self.COLS)] for r in range(self.ROWS)]for a in range(2)])
+        return np.array([[[self.grid[a,r,c].get() for c in range(self.COLS)] for r in range(self.ROWS)]for a in range(2)])
     
     def clear(self):
         self.grid = self.create_grid()
@@ -129,29 +130,58 @@ class HexLattice():
         return (right, right_above, left_above, left, left_below, right_below)
 
     def update(self):
-        current_states = self.get_states()
-        tmp = self.grid.copy()
+        current = self.get_states().astype(int)
 
-        for id in self.grid.keys():
-            current_cell_state = self.grid[id]
-            nbr_state = 0
-            nbrs = self.get_neighbours(id)
+        live_nbrs = np.zeros_like(current)
+        for a in range(2): 
+            for shift in self.shifts[a]:
+                live_nbrs[a] += np.roll(current, shift=shift, axis=(0,1,2))[a]
 
-            for nbr in nbrs:
-                nbr_state += current_states[*nbr]
+        # rules
+        surviving =  ( (live_nbrs == 3) | (live_nbrs == 4) ) & self.get_states()
+        stable = np.where(surviving) # survive
+        not_stable = np.where(~surviving) # die
+        birth = np.where( (live_nbrs == 2) & (~self.get_states()) ) # birth
 
-            if current_cell_state.get() and (nbr_state == 3 or nbr_state == 4): # survive
-                continue
-            elif not current_cell_state.get() and nbr_state == 2: # reborn
-                tmp[id].set(True)
-            else:
-                tmp[id].set(False) # die
+        # update
+        for cell in self.grid[*not_stable]:
+            cell.set(False)
+        
+        for cell in self.grid[*stable]:
+            cell.set(True)
 
-        self.grid = tmp
+        for cell in self.grid[*birth]:
+            cell.set(True)
+
+    # def update(self):
+    #     current_states = self.get_states()
+    #     tmp = self.grid.copy()
+
+    #     for id in self.grid.keys():
+    #         current_cell_state = self.grid[id]
+    #         nbr_state = 0
+    #         nbrs = self.get_neighbours(id)
+
+    #         for nbr in nbrs:
+    #             nbr_state += current_states[*nbr]
+
+    #         if current_cell_state.get() and (nbr_state == 3 or nbr_state == 4): # survive
+    #             continue
+    #         elif not current_cell_state.get() and nbr_state == 2: # reborn
+    #             tmp[id].set(True)
+    #         else:
+    #             tmp[id].set(False) # die
+
+    #     self.grid = tmp
 
     def rnd_population(self):
-        for cell_id in self.grid:
-            p = np.random.uniform(0,1)
-            if p < 0.33:
-                self.grid[cell_id].set(True)
+        # for cell_id in self.grid:
+        #     p = np.random.uniform(0,1)
+        #     if p < 0.33:
+        #         self.grid[cell_id].set(True)
+        p = np.random.rand(2, self.ROWS, self.COLS) < 0.33
+        for a in range(2):
+            for r in range(self.ROWS):
+                for c in range(self.COLS):
+                    self.grid[a, r, c].set(p[a, r, c])
         
