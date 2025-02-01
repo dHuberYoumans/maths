@@ -192,8 +192,8 @@ class Square(GUI):
 
         # rectangle in canvas
         for i in range(self.ROWS):
-            for j in range(self.COLS):
-                id = self.canvas.create_rectangle(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill=self.C_DEAD,outline=self.C_CELL_OUTLINE)
+            for j in range(self.COLS): #create_rectangle
+                id = self.canvas.create_oval(i*self.cell_width,j*self.cell_height,(i+1)*self.cell_width,(j+1)*self.cell_height, fill=self.C_DEAD,outline=self.C_CELL_OUTLINE)
                 self.cells_by_id[id] = (j, i) # rectangle ids -> (col,row)
 
         self.cells_by_pos = { (b,a):rectangle_id  for rectangle_id, (a,b) in self.cells_by_id.items()} # (col,row) -> rectangle ids
