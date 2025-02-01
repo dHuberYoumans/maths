@@ -1,6 +1,3 @@
-.gitignore.swp
-.gitignore~
-.DS_Store
-MeanCurvFlow/.DS_Store
-MeanCurvFlow/src/__pycache__/
-MeanCurvFlow/README.md~
+**/.DS_Store
+**/*~
+**/__pycache__/
